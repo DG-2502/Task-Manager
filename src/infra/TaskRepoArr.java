@@ -31,7 +31,7 @@ public class TaskRepoArr implements TaskRepo {
     public void update(Task updatedTask) {
         Task existingTask = getById(updatedTask.getID());
 
-        existingTask.setState(updatedTask.isState());
+        existingTask.setActive(updatedTask.isActive());
         existingTask.setTitle(updatedTask.getTitle());
         existingTask.setStartDate(updatedTask.getStartDate());
     }
@@ -50,11 +50,11 @@ public class TaskRepoArr implements TaskRepo {
 
     @Override
     public List<Task> getByState(boolean state) {
-        return tasks.stream().filter(task -> task.isState() == state).toList();
+        return tasks.stream().filter(task -> task.isActive() == state).toList();
     }
 
     @Override
     public void deleteByState(boolean state) {
-        tasks.removeIf(task -> task.isState() == state);
+        tasks.removeIf(task -> task.isActive() == state);
     }
 }

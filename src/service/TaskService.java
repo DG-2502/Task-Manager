@@ -3,6 +3,9 @@ package service;
 import domain.Task;
 import repo.TaskRepo;
 
+import java.time.LocalDate;
+import java.util.List;
+
 public class TaskService {
     private TaskRepo taskRepo;
 
@@ -10,17 +13,21 @@ public class TaskService {
         this.taskRepo = taskRepo;
     }
 
-    public void createTask(Task task) {
-        taskRepo.add(task);
+    public void createTask(String title) {
+        taskRepo.add(new Task(title, LocalDate.now(), true));
     }
 
     public void closeTask(int id) {
         Task task = taskRepo.getById(id);
-        task.setState(false);
+        task.setActive(false);
         taskRepo.update(task);
     }
 
     public void deleteClosed() {
         taskRepo.deleteByState(false);
+    }
+
+    public List<Task> getTasks() {
+        return taskRepo.get();
     }
 }

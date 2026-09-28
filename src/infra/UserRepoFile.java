@@ -1,17 +1,16 @@
 package infra;
 
-import domain.Task;
+import domain.User;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
-import java.time.LocalDate;
 import java.util.Scanner;
 
-public class TaskRepoFile extends TaskRepoArr {
-    private String path = "data/tasks.txt";
+public class UserRepoFile extends UserRepoArr {
+    private String path = "data/users.txt";
 
-    public TaskRepoFile() throws FileNotFoundException {
+    public UserRepoFile() throws FileNotFoundException {
         Scanner scanner = new Scanner(new File(path));
 
         while (scanner.hasNextLine()) {
@@ -25,20 +24,19 @@ public class TaskRepoFile extends TaskRepoArr {
         if (id > ID) {
             ID = id;
         }
-        Task newTask = new Task(args[1], LocalDate.parse(args[2]), Boolean.parseBoolean(args[3]));
-        newTask.setID(id);
-        tasks.add(newTask);
+        User newUser = new User(args[1], Boolean.parseBoolean(args[2]));
+        newUser.setID(id);
+        users.add(newUser);
     }
 
     private void write() {
         try {
             FileWriter fWriter = new FileWriter(path);
             String line;
-            for (Task task : tasks) {
-                line = task.getID() + "`SPLITTER`";
-                line += task.getTitle() + "`SPLITTER`";
-                line += task.getStartDate() + "`SPLITTER`";
-                line += task.isActive() + "\n";
+            for (User user : users) {
+                line = user.getID() + "`SPLITTER`";
+                line += user.getUsername() + "`SPLITTER`";
+                line += user.isAdmin() + "\n";
                 fWriter.write(line);
             }
 
@@ -49,26 +47,20 @@ public class TaskRepoFile extends TaskRepoArr {
     }
 
     @Override
-    public void add(Task task) {
-        super.add(task);
+    public void add(User user) {
+        super.add(user);
         write();
     }
 
     @Override
-    public void update(Task updatedTask) {
-        super.update(updatedTask);
+    public void update(User updatedUser) {
+        super.update(updatedUser);
         write();
     }
 
     @Override
     public void delete(int id) {
         super.delete(id);
-        write();
-    }
-
-    @Override
-    public void deleteByState(boolean state) {
-        super.deleteByState(state);
         write();
     }
 }

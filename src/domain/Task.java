@@ -5,18 +5,18 @@ import java.time.LocalDate;
 public class Task {
     private String title;
     private LocalDate startDate;
-    private boolean state;
+    private boolean active;
     private int ID;
 
-    public Task(String title, LocalDate startDate) {
+    public Task(String title, LocalDate startDate, boolean active) {
         this.title = title;
         this.startDate = startDate;
-        this.state = true;
+        this.active = active;
     }
 
     @Override
     public String toString() {
-        return ID + " " + title + " | " + startDate + " " + (state ? "Active" : "Closed");
+        return ID + " " + title + " | " + startDate + " " + (active ? "Active" : "Closed");
     }
 
     public String getTitle() {
@@ -35,12 +35,12 @@ public class Task {
         this.startDate = startDate;
     }
 
-    public boolean isState() {
-        return state;
+    public boolean isActive() {
+        return active;
     }
 
-    public void setState(boolean state) {
-        this.state = state;
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public int getID() {
