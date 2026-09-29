@@ -6,12 +6,14 @@ public class Task {
     private String title;
     private LocalDate startDate;
     private boolean active;
+    private int creatorID;
     private int ID;
 
-    public Task(String title, LocalDate startDate, boolean active) {
+    public Task(String title, LocalDate startDate, boolean active, int creatorID) {
         this.title = title;
         this.startDate = startDate;
         this.active = active;
+        this.creatorID = creatorID;
     }
 
     @Override
@@ -51,4 +53,11 @@ public class Task {
         this.ID = ID;
     }
 
+    public int getCreatorID() {
+        return creatorID;
+    }
+
+    public void setCreatorID(int creatorID) {
+        this.creatorID = creatorID;
+    }
 }

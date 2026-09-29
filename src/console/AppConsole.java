@@ -55,18 +55,13 @@ public class AppConsole extends BasicConsole {
     }
 
     private void login() {
-        if (userConsole == null) {
-            try {
-                User user = userService.login(userName);
-                this.userConsole = new UserConsole(user, taskService);
-                System.out.println("Logged in as: " + user);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-                System.out.println("Could not log in due to the above exception!");
-            }
-
-        } else {
-            System.out.println("Already logged in!");
+        try {
+            User user = userService.login(userName);
+            this.userConsole = new UserConsole(user, taskService);
+            System.out.println("Logged in as: " + user);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            System.out.println("Could not log in due to the above exception!");
         }
     }
 }

@@ -1,6 +1,7 @@
 package infra;
 
 import domain.Task;
+import domain.User;
 import exception.TaskNotFoundException;
 import repo.TaskRepo;
 
@@ -44,17 +45,17 @@ public class TaskRepoArr implements TaskRepo {
     }
 
     @Override
-    public ArrayList<Task> get() {
-        return tasks;
+    public List<Task> get(int userID) {
+        return tasks.stream().filter(task -> task.getCreatorID() == userID).toList();
     }
 
     @Override
-    public List<Task> getByState(boolean state) {
-        return tasks.stream().filter(task -> task.isActive() == state).toList();
+    public List<Task> getByState(boolean state, int userID) {
+        return get(userID).stream().filter(task -> task.isActive() == state).toList();
     }
 
     @Override
-    public void deleteByState(boolean state) {
-        tasks.removeIf(task -> task.isActive() == state);
+    public void deleteByState(boolean state, int userId) {
+        tasks.removeIf(task -> task.isActive() == state && task.getCreatorID() == userId);
     }
 }

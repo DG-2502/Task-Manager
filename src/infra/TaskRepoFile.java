@@ -25,7 +25,7 @@ public class TaskRepoFile extends TaskRepoArr {
         if (id > ID) {
             ID = id;
         }
-        Task newTask = new Task(args[1], LocalDate.parse(args[2]), Boolean.parseBoolean(args[3]));
+        Task newTask = new Task(args[1], LocalDate.parse(args[2]), Boolean.parseBoolean(args[3]), Integer.parseInt(args[4]));
         newTask.setID(id);
         tasks.add(newTask);
     }
@@ -38,7 +38,8 @@ public class TaskRepoFile extends TaskRepoArr {
                 line = task.getID() + "`SPLITTER`";
                 line += task.getTitle() + "`SPLITTER`";
                 line += task.getStartDate() + "`SPLITTER`";
-                line += task.isActive() + "\n";
+                line += task.isActive() + "`SPLITTER`";
+                line += task.getCreatorID() + "\n";
                 fWriter.write(line);
             }
 
@@ -67,8 +68,8 @@ public class TaskRepoFile extends TaskRepoArr {
     }
 
     @Override
-    public void deleteByState(boolean state) {
-        super.deleteByState(state);
+    public void deleteByState(boolean state, int userID) {
+        super.deleteByState(state, userID);
         write();
     }
 }
