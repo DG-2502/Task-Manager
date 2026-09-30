@@ -2,7 +2,6 @@ package infra;
 
 import domain.User;
 import exception.UserNotFoundException;
-import exception.UsernameNotFoundException;
 import repo.UserRepo;
 
 import java.util.ArrayList;
@@ -35,6 +34,7 @@ public class UserRepoArr implements UserRepo {
 
         existingUser.setUsername(updatedUser.getUsername());
         existingUser.setAdmin(updatedUser.isAdmin());
+        existingUser.setPasswordHash(updatedUser.getPasswordHash());
     }
 
     @Override
@@ -50,11 +50,7 @@ public class UserRepoArr implements UserRepo {
     }
 
     @Override
-    public User getByUserName(String username) {
-        Optional<User> optionalUser = users.stream().filter(user -> user.getUsername().equals(username)).findAny();
-        if (optionalUser.isPresent()) {
-            return optionalUser.get();
-        }
-        throw new UsernameNotFoundException(username);
+    public Optional<User> getByUserName(String username) {
+        return users.stream().filter(user -> user.getUsername().equals(username)).findAny();
     }
 }

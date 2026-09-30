@@ -9,9 +9,10 @@ import java.time.LocalDate;
 import java.util.Scanner;
 
 public class TaskRepoFile extends TaskRepoArr {
-    private String path = "data/tasks.txt";
+    private String path;
 
-    public TaskRepoFile() throws FileNotFoundException {
+    public TaskRepoFile(String path) throws FileNotFoundException {
+        this.path = path;
         Scanner scanner = new Scanner(new File(path));
 
         while (scanner.hasNextLine()) {

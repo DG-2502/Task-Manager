@@ -1,7 +1,6 @@
 package repo;
 
 import domain.Task;
-import domain.User;
 
 import java.util.List;
 

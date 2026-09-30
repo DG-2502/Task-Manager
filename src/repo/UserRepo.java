@@ -3,6 +3,7 @@ package repo;
 import domain.User;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserRepo {
     User getById(int id);
@@ -11,5 +12,5 @@ public interface UserRepo {
     void delete(int id);
     List<User> get();
 
-    User getByUserName(String userName);
+    Optional<User> getByUserName(String userName);
 }

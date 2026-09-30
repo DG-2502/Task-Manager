@@ -1,7 +1,6 @@
 package infra;
 
 import domain.Task;
-import domain.User;
 import exception.TaskNotFoundException;
 import repo.TaskRepo;
 

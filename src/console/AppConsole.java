@@ -11,6 +11,7 @@ public class AppConsole extends BasicConsole {
     Console userConsole;
     String userName;
     boolean loginOption;
+    boolean registerOption;
 
     public AppConsole(TaskService taskService, UserService userService) {
         this.taskService = taskService;
@@ -37,6 +38,10 @@ public class AppConsole extends BasicConsole {
             userName = option;
             return loginOption = true;
         }
+        if (command.equals("register")) {
+            userName = option;
+            return registerOption = true;
+        }
         return super.parseCommand(command, option);
     }
 
@@ -44,7 +49,8 @@ public class AppConsole extends BasicConsole {
     public void executeCommands() {
         super.executeCommands();
         if (getHelpOption()) {
-            System.out.println("login name/index - login in as the specified user");
+            System.out.println("login username - login in as the specified user");
+            System.out.println("register username - register and login");
             System.out.println("exit - close the application");
             setHelpOption(false);
         }
@@ -52,16 +58,42 @@ public class AppConsole extends BasicConsole {
             login();
             loginOption = false;
         }
+        if (registerOption) {
+            if (register()) login();
+            registerOption = false;
+        }
     }
 
     private void login() {
         try {
-            User user = userService.login(userName);
+            System.out.println("Enter the password: ");
+            String password = readName(true);
+            User user = userService.login(userName, password);
             this.userConsole = new UserConsole(user, taskService);
             System.out.println("Logged in as: " + user);
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            System.out.println("Could not log in due to the above exception!");
+        }
+    }
+
+    private boolean register() {
+        try {
+            System.out.println("Enter the password: ");
+            String password = readName(true);
+            System.out.println("Repeat the password: ");
+            String passwordRepeat = readName(true);
+
+            if (!password.equals(passwordRepeat)) {
+                System.out.println("The passwords are different");
+                return false;
+            }
+
+            userService.register(userName, password, false);
+            System.out.println("Registered successfully");
+            return true;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
         }
     }
 }

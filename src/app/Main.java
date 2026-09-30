@@ -1,37 +1,18 @@
 import console.AppConsole;
 import console.Console;
-import infra.TaskRepoArr;
+import infra.PasswordHasherBCrypt;
 import infra.TaskRepoFile;
 import infra.UserRepoFile;
-import repo.TaskRepo;
-import repo.UserRepo;
-import service.TaskService;
-import service.UserService;
+import repo.*;
+import service.*;
 
 void main() throws FileNotFoundException {
-    TaskRepo taskRepo = new TaskRepoArr();
-    taskRepo = new TaskRepoFile();
-//    TaskService taskService = new TaskService(taskRepo);
-//
-//    taskService.createTask(new Task("NEW TASK", LocalDate.now()));
-//
-//    System.out.println(taskRepo.get());
-//
-//    taskService.createTask(new Task("Another task", LocalDate.now()));
-//
-//    System.out.println(taskRepo.get());
-//
-//    taskService.closeTask(taskRepo.get().getFirst().getID());
-//
-//    System.out.println(taskRepo.get());
-//
-//    taskService.deleteClosed();
-//
-//    System.out.println(taskRepo.get());
+    TaskRepo taskRepo = new TaskRepoFile("data/tasks.txt");
+    UserRepo userRepo = new UserRepoFile("data/users.txt");
+    PasswordHasher passwordHasher = new PasswordHasherBCrypt();
 
-    UserRepo userRepo = new UserRepoFile();
     TaskService taskService = new TaskService(taskRepo);
-    UserService userService = new UserService(userRepo);
+    UserService userService = new UserService(userRepo, passwordHasher);
 
     Console app = new AppConsole(taskService, userService);
     while (!app.getExitOption()) {

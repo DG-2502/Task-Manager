@@ -8,9 +8,10 @@ import java.io.FileWriter;
 import java.util.Scanner;
 
 public class UserRepoFile extends UserRepoArr {
-    private String path = "data/users.txt";
+    private String path;
 
-    public UserRepoFile() throws FileNotFoundException {
+    public UserRepoFile(String path) throws FileNotFoundException {
+        this.path = path;
         Scanner scanner = new Scanner(new File(path));
 
         while (scanner.hasNextLine()) {
@@ -24,7 +25,7 @@ public class UserRepoFile extends UserRepoArr {
         if (id > ID) {
             ID = id;
         }
-        User newUser = new User(args[1], Boolean.parseBoolean(args[2]));
+        User newUser = new User(args[1], Boolean.parseBoolean(args[2]), args[3]);
         newUser.setID(id);
         users.add(newUser);
     }
@@ -36,7 +37,8 @@ public class UserRepoFile extends UserRepoArr {
             for (User user : users) {
                 line = user.getID() + "`SPLITTER`";
                 line += user.getUsername() + "`SPLITTER`";
-                line += user.isAdmin() + "\n";
+                line += user.isAdmin() + "`SPLITTER`";
+                line += user.getPasswordHash() + "\n";
                 fWriter.write(line);
             }
 
