@@ -44,9 +44,22 @@ public class TaskService {
         taskRepo.deleteByState(false, user.getID());
     }
 
-    public List<Task> getTasks(int option, User user) {
-        if (option == 1) return taskRepo.getByState(true, user.getID());
-        if (option == 2) return taskRepo.getByState(false, user.getID());
-        return taskRepo.get(user.getID());
+    public enum TaskFilter {
+        ALL, ACTIVE, CLOSED;
+    }
+
+    public List<Task> getTasks(TaskFilter filter, int userID) {
+        return switch (filter) {
+            case ALL -> taskRepo.getByUser(userID);
+            case ACTIVE -> taskRepo.getByStateAndUser(true, userID);
+            case CLOSED -> taskRepo.getByStateAndUser(false, userID);
+        };
+    }
+
+    public void deleteTasksByUserId(int id, User user) {
+        if (!user.isAdmin()) {
+            throw new AccessDeniedException("Only admins can do that");
+        }
+        taskRepo.deleteByUserId(id);
     }
 }

@@ -12,7 +12,7 @@ void main() throws FileNotFoundException {
     PasswordHasher passwordHasher = new PasswordHasherBCrypt();
 
     TaskService taskService = new TaskService(taskRepo);
-    UserService userService = new UserService(userRepo, passwordHasher);
+    UserService userService = new UserService(userRepo, passwordHasher, taskRepo);
 
     Console app = new AppConsole(taskService, userService);
     while (!app.getExitOption()) {

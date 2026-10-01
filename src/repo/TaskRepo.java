@@ -9,8 +9,9 @@ public interface TaskRepo {
     Task getById(int id);
     void update(Task task);
     void delete(int id);
-    List<Task> get(int userId);
+    List<Task> getByUser(int userId);
 
-    List<Task> getByState(boolean state, int userId);
+    List<Task> getByStateAndUser(boolean state, int userId);
     void deleteByState(boolean state, int userId);
+    void deleteByUserId(int userId);
 }

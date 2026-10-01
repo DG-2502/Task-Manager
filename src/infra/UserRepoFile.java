@@ -14,6 +14,7 @@ public class UserRepoFile extends UserRepoArr {
         this.path = path;
         Scanner scanner = new Scanner(new File(path));
 
+        ID = Integer.parseInt(scanner.nextLine());
         while (scanner.hasNextLine()) {
             parseLine(scanner.nextLine());
         }
@@ -21,19 +22,16 @@ public class UserRepoFile extends UserRepoArr {
 
     private void parseLine(String line) {
         String[] args = line.split("`SPLITTER`");
-        int id = Integer.parseInt(args[0]);
-        if (id > ID) {
-            ID = id;
-        }
         User newUser = new User(args[1], Boolean.parseBoolean(args[2]), args[3]);
-        newUser.setID(id);
+        newUser.setID(Integer.parseInt(args[0]));
         users.add(newUser);
     }
 
     private void write() {
         try {
             FileWriter fWriter = new FileWriter(path);
-            String line;
+            String line = String.valueOf(ID);
+            fWriter.write(line + "\n");
             for (User user : users) {
                 line = user.getID() + "`SPLITTER`";
                 line += user.getUsername() + "`SPLITTER`";

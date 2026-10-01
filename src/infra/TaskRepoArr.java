@@ -44,17 +44,22 @@ public class TaskRepoArr implements TaskRepo {
     }
 
     @Override
-    public List<Task> get(int userID) {
+    public List<Task> getByUser(int userID) {
         return tasks.stream().filter(task -> task.getCreatorID() == userID).toList();
     }
 
     @Override
-    public List<Task> getByState(boolean state, int userID) {
-        return get(userID).stream().filter(task -> task.isActive() == state).toList();
+    public List<Task> getByStateAndUser(boolean state, int userID) {
+        return getByUser(userID).stream().filter(task -> task.isActive() == state).toList();
     }
 
     @Override
     public void deleteByState(boolean state, int userId) {
         tasks.removeIf(task -> task.isActive() == state && task.getCreatorID() == userId);
+    }
+
+    @Override
+    public void deleteByUserId(int userId) {
+        tasks.removeIf(task -> task.getCreatorID() == userId);
     }
 }

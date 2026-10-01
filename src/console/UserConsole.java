@@ -7,12 +7,12 @@ import service.TaskService;
 import java.util.List;
 
 public class UserConsole extends BasicConsole {
-    User user;
-    boolean createOption;
-    boolean displayOption;
-    boolean closeOption;
-    boolean deleteOption;
-    String query;
+    protected User user;
+    protected boolean createOption;
+    protected boolean displayOption;
+    protected boolean closeOption;
+    protected boolean deleteOption;
+    protected String query;
 
     TaskService taskService;
 
@@ -37,19 +37,14 @@ public class UserConsole extends BasicConsole {
     public void executeCommands() {
         super.executeCommands();
         if (getHelpOption()) {
-            System.out.println("exit - Log out of the system");
-            System.out.println("create - Create a new task");
-            System.out.println("display - display tasks");
-            System.out.println("close - close an active task");
-            System.out.println("delete optional<closed> - delete closed task\\-s");
-            setHelpOption(false);
+            printHelp();
         }
         if (createOption) {
             createTask();
             createOption = false;
         }
         if (displayOption) {
-            displayTasks();
+            displayTasks(user.getID());
             displayOption = false;
         }
         if (closeOption) {
@@ -62,6 +57,16 @@ public class UserConsole extends BasicConsole {
         }
     }
 
+    @Override
+    protected void printHelp() {
+        super.printHelp();
+        System.out.println("exit - Log out of the system");
+        System.out.println("create - Create a new task");
+        System.out.println("display - display tasks");
+        System.out.println("close - close an active task");
+        System.out.println("delete optional<closed> - delete closed task\\-s");
+    }
+
     private void createTask() {
         System.out.println("Create a new task");
         System.out.println("Enter the title of the task");
@@ -70,13 +75,18 @@ public class UserConsole extends BasicConsole {
         System.out.println("Task was successfully created");
     }
 
-    private void displayTasks() {
+    protected void displayTasks(int userId) {
         System.out.println("DISPLAY options:");
         System.out.println("0: All");
         System.out.println("1: Active");
         System.out.println("2: Closed");
         int option = readInt(0, 2);
-        List<Task> tasks = taskService.getTasks(option, user);
+        TaskService.TaskFilter filter = switch (option) {
+            case 1 -> TaskService.TaskFilter.ACTIVE;
+            case 2 -> TaskService.TaskFilter.CLOSED;
+            default -> TaskService.TaskFilter.ALL;
+        };
+        List<Task> tasks = taskService.getTasks(filter, userId);
         System.out.println("*** Tasks ***");
         for (Task task : tasks) {
             System.out.println(task);

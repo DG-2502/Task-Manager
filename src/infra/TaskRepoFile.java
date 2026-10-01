@@ -73,4 +73,10 @@ public class TaskRepoFile extends TaskRepoArr {
         super.deleteByState(state, userID);
         write();
     }
+
+    @Override
+    public void deleteByUserId(int userId) {
+        super.deleteByUserId(userId);
+        write();
+    }
 }

@@ -70,9 +70,14 @@ public abstract class BasicConsole implements Console {
 
     public void executeCommands() {
         if (helpOption) {
-            System.out.println("Available commands:");
-            System.out.println("help - Show available commands");
+            printHelp();
         }
+    }
+
+    protected void printHelp() {
+        System.out.println("Available commands:");
+        System.out.println("help - Show available commands");
+        setHelpOption(false);
     }
 
     @Override

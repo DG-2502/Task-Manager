@@ -49,10 +49,7 @@ public class AppConsole extends BasicConsole {
     public void executeCommands() {
         super.executeCommands();
         if (getHelpOption()) {
-            System.out.println("login username - login in as the specified user");
-            System.out.println("register username - register and login");
-            System.out.println("exit - close the application");
-            setHelpOption(false);
+            printHelp();
         }
         if (loginOption) {
             login();
@@ -64,12 +61,24 @@ public class AppConsole extends BasicConsole {
         }
     }
 
+    @Override
+    protected void printHelp() {
+        super.printHelp();
+        System.out.println("login username - login in as the specified user");
+        System.out.println("register username - register and login");
+        System.out.println("exit - close the application");
+    }
+
     private void login() {
         try {
             System.out.println("Enter the password: ");
             String password = readName(true);
             User user = userService.login(userName, password);
-            this.userConsole = new UserConsole(user, taskService);
+            if (user.isAdmin()) {
+                this.userConsole = new AdminConsole(user, taskService, userService);
+            } else {
+                this.userConsole = new UserConsole(user, taskService);
+            }
             System.out.println("Logged in as: " + user);
         } catch (Exception e) {
             System.out.println(e.getMessage());
