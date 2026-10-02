@@ -37,6 +37,10 @@ public class UserService {
     }
 
     public void register(String username, String password, boolean isAdmin) throws ValidationException {
+        if (password.length() < 3) {
+            throw new ValidationException("Password should be at least 3 characters long");
+        }
+
         Optional<User> optionalUser = userRepo.getByUserName(username);
         if (optionalUser.isPresent()) {
             throw new ValidationException("Username: " + username + " is already taken");

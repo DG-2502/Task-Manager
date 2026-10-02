@@ -1,6 +1,7 @@
 import console.AppConsole;
 import app.BootStrapConsole;
 import console.Console;
+import exception.ValidationException;
 import infra.PasswordHasherBCrypt;
 import infra.TaskRepoFile;
 import infra.UserRepoFile;
@@ -16,9 +17,16 @@ void main() throws IOException {
     UserService userService = new UserService(userRepo, passwordHasher, taskRepo);
 
     if (userService.getUsers().isEmpty()) {
+        System.out.println("Bootstrapping the user's repository");
         BootStrapConsole console = new BootStrapConsole();
-        String passwordHash = passwordHasher.hash(console.getPassword());
-        userService.register(console.getUsername(), passwordHash, true);
+        while (true) {
+            try {
+                userService.register(console.getUsername(), console.getPassword(), true);
+                break;
+            } catch (ValidationException e) {
+                System.out.println(e.getMessage());
+            }
+        }
         System.out.println("GENERATED THE ROOT ADMIN USER");
     }
 

@@ -12,6 +12,7 @@ public class UserConsole extends BasicConsole {
     protected boolean displayOption;
     protected boolean closeOption;
     protected boolean deleteOption;
+    protected boolean updateOption;
     protected String query;
 
     TaskService taskService;

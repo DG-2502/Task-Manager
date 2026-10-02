@@ -3,22 +3,13 @@ package app;
 import java.util.Scanner;
 
 public class BootStrapConsole {
-    private String username;
-    private String password;
     private Scanner scanner = new Scanner(System.in);
-
-    public BootStrapConsole() {
-        System.out.println("Bootstrapping the user's repository");
-        System.out.println("Enter the username:");
-        username = read(false);
-        readPassword();
-        scanner.close();
-    }
 
     private String read(boolean any) {
         String line = scanner.nextLine().trim();
         if (any) {
             return line;
+
         }
         while (true) {
             if (line.matches("[a-zA-Z]+")) {
@@ -29,7 +20,12 @@ public class BootStrapConsole {
         }
     }
 
-    private void readPassword() {
+    public String getUsername() {
+        System.out.println("Enter the username:");
+        return read(false);
+    }
+
+    public String getPassword() {
         String password;
         String passwordRepeat;
         while (true) {
@@ -44,14 +40,6 @@ public class BootStrapConsole {
             System.out.println("The passwords are different");
         }
 
-        this.password = password;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
         return password;
     }
 }
