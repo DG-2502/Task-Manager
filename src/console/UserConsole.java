@@ -36,9 +36,6 @@ public class UserConsole extends BasicConsole {
     @Override
     public void executeCommands() {
         super.executeCommands();
-        if (getHelpOption()) {
-            printHelp();
-        }
         if (createOption) {
             createTask();
             createOption = false;

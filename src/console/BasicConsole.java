@@ -1,14 +1,13 @@
 package console;
 
-
 import java.util.Scanner;
 
 public abstract class BasicConsole implements Console {
+    private final Scanner scanner = new Scanner(System.in);
     private boolean exitOption = false;
     private boolean helpOption = true;
 
     public void readInput() {
-        Scanner scanner = new Scanner(System.in);
         while (true) {
             String request = scanner.nextLine().trim();
             if (request.matches("\\w+\\s+.+")) {
@@ -27,7 +26,6 @@ public abstract class BasicConsole implements Console {
     }
 
     public int readInt(int lower, int upper) {
-        Scanner scanner = new Scanner(System.in);
         while (true) {
             String request = scanner.nextLine().trim();
             if (request.matches("\\d+")) {
@@ -43,7 +41,6 @@ public abstract class BasicConsole implements Console {
     }
 
     public String readName(boolean anyName) {
-        Scanner scanner = new Scanner(System.in);
         String line = scanner.nextLine().trim();
         if (anyName) {
             return line;
@@ -88,10 +85,6 @@ public abstract class BasicConsole implements Console {
 
     public boolean getExitOption() {
         return exitOption;
-    }
-
-    public boolean getHelpOption() {
-        return helpOption;
     }
 
     public void setHelpOption(boolean helpOption) {

@@ -48,9 +48,6 @@ public class AppConsole extends BasicConsole {
     @Override
     public void executeCommands() {
         super.executeCommands();
-        if (getHelpOption()) {
-            printHelp();
-        }
         if (loginOption) {
             login();
             loginOption = false;

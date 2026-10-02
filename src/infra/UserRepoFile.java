@@ -3,21 +3,38 @@ package infra;
 import domain.User;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class UserRepoFile extends UserRepoArr {
     private String path;
 
-    public UserRepoFile(String path) throws FileNotFoundException {
+    public UserRepoFile(String path) throws IOException {
         this.path = path;
-        Scanner scanner = new Scanner(new File(path));
+        File file = checkFile(path);
+        Scanner scanner = new Scanner(file);
 
         ID = Integer.parseInt(scanner.nextLine());
         while (scanner.hasNextLine()) {
             parseLine(scanner.nextLine());
         }
+
+        scanner.close();
+    }
+
+    private File checkFile(String path) throws IOException {
+        File file = new File(path);
+        if (file.isDirectory()) {
+            throw new RuntimeException(file + " is a directory, not a file!");
+        }
+        File parent = file.getParentFile();
+        if (parent != null) parent.mkdirs();
+        if (file.createNewFile()) {
+            write();
+        }
+
+        return file;
     }
 
     private void parseLine(String line) {

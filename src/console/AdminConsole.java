@@ -65,6 +65,10 @@ public class AdminConsole extends UserConsole {
     private void deleteUser() {
         System.out.println("Enter the id of the user to delete:");
         int userId = readInt(0, Integer.MAX_VALUE);
+        if (userId == user.getID()) {
+            System.out.println("You can not delete yourself");
+            return;
+        }
         try {
             userService.deleteUserByID(userId, user);
         } catch (Exception e) {
