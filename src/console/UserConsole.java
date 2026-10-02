@@ -8,14 +8,7 @@ import java.util.List;
 
 public class UserConsole extends BasicConsole {
     protected User user;
-    protected boolean createOption;
-    protected boolean displayOption;
-    protected boolean closeOption;
-    protected boolean deleteOption;
-    protected boolean updateOption;
-    protected String query;
-
-    TaskService taskService;
+    protected TaskService taskService;
 
     public UserConsole(User user, TaskService taskService) {
         this.user = user;
@@ -23,35 +16,13 @@ public class UserConsole extends BasicConsole {
     }
 
     @Override
-    public boolean parseCommand(String command, String query) {
-        this.query = query;
-        return switch (command) {
-            case "create" -> createOption = true;
-            case "display" -> displayOption = true;
-            case "close" -> closeOption = true;
-            case "delete" -> deleteOption = true;
+    public void parseCommand(String command, String query) {
+        switch (command) {
+            case "create" -> createTask();
+            case "display" -> displayTasks(user.getID());
+            case "close" -> closeTask();
+            case "delete" -> deleteTasks(query);
             default -> super.parseCommand(command, query);
-        };
-    }
-
-    @Override
-    public void executeCommands() {
-        super.executeCommands();
-        if (createOption) {
-            createTask();
-            createOption = false;
-        }
-        if (displayOption) {
-            displayTasks(user.getID());
-            displayOption = false;
-        }
-        if (closeOption) {
-            closeTask();
-            closeOption = false;
-        }
-        if (deleteOption) {
-            deleteTasks();
-            deleteOption = false;
         }
     }
 
@@ -62,7 +33,7 @@ public class UserConsole extends BasicConsole {
         System.out.println("create - Create a new task");
         System.out.println("display - display tasks");
         System.out.println("close - close an active task");
-        System.out.println("delete optional<closed> - delete closed task\\-s");
+        System.out.println("delete [closed] - delete closed task\\-s");
     }
 
     private void createTask() {
@@ -106,7 +77,7 @@ public class UserConsole extends BasicConsole {
         System.out.println("Task with id: " + id + " was closed");
     }
 
-    private void deleteTasks() {
+    private void deleteTasks(String query) {
         if (query.equals("closed")) {
             taskService.deleteClosed(user);
             System.out.println("Deleted all closed tasks");

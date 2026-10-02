@@ -1,6 +1,5 @@
 import console.AppConsole;
 import app.BootStrapConsole;
-import console.Console;
 import exception.ValidationException;
 import infra.PasswordHasherBCrypt;
 import infra.TaskRepoFile;
@@ -30,9 +29,6 @@ void main() throws IOException {
         System.out.println("GENERATED THE ROOT ADMIN USER");
     }
 
-
-    Console app = new AppConsole(taskService, userService);
-    while (!app.getExitOption()) {
-        app.run();
-    }
+    AppConsole app = new AppConsole(taskService, userService);
+    app.run();
 }

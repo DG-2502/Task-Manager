@@ -5,13 +5,9 @@ import service.TaskService;
 import service.UserService;
 
 public class AppConsole extends BasicConsole {
-    TaskService taskService;
-    UserService userService;
-
-    Console userConsole;
-    String userName;
-    boolean loginOption;
-    boolean registerOption;
+    private final TaskService taskService;
+    private final UserService userService;
+    private UserConsole userConsole;
 
     public AppConsole(TaskService taskService, UserService userService) {
         this.taskService = taskService;
@@ -20,41 +16,26 @@ public class AppConsole extends BasicConsole {
 
     @Override
     public void run() {
-        executeCommands();
-        if (userConsole != null) {
-            while (!userConsole.getExitOption()) {
+        System.out.println("Running the main application console\nType help to see the commands");
+        while (!exitOption) {
+            if (userConsole != null) {
+                System.out.println("Type help to see the available commands");
                 userConsole.run();
+                userConsole = null;
+                System.out.println("Exited the user console mode, back to main application console");
             }
-            userConsole = null;
-            setHelpOption(true);
-            executeCommands();
+            readInput();
         }
-        readInput();
     }
 
     @Override
-    public boolean parseCommand(String command, String option) {
-        if (command.equals("login")) {
-            userName = option;
-            return loginOption = true;
-        }
-        if (command.equals("register")) {
-            userName = option;
-            return registerOption = true;
-        }
-        return super.parseCommand(command, option);
-    }
-
-    @Override
-    public void executeCommands() {
-        super.executeCommands();
-        if (loginOption) {
-            login();
-            loginOption = false;
-        }
-        if (registerOption) {
-            if (register()) login();
-            registerOption = false;
+    public void parseCommand(String command, String query) {
+        switch (command) {
+            case "login" -> login(query);
+            case "register" -> {
+                if (register(query)) login(query);
+            }
+            default -> super.parseCommand(command, query);
         }
     }
 
@@ -66,7 +47,7 @@ public class AppConsole extends BasicConsole {
         System.out.println("exit - close the application");
     }
 
-    private void login() {
+    private void login(String userName) {
         try {
             System.out.println("Enter the password: ");
             String password = readName(true);
@@ -82,7 +63,7 @@ public class AppConsole extends BasicConsole {
         }
     }
 
-    private boolean register() {
+    private boolean register(String userName) {
         try {
             System.out.println("Enter the password: ");
             String password = readName(true);
@@ -99,7 +80,7 @@ public class AppConsole extends BasicConsole {
             return true;
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            return false;
         }
+        return false;
     }
 }

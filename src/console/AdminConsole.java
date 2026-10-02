@@ -7,12 +7,7 @@ import service.UserService;
 import java.util.List;
 
 public class AdminConsole extends UserConsole {
-    private boolean deleteUserOption;
-    private boolean deleteUserTasksOption;
-    private boolean listUsersOption;
-    private boolean listTasksOption;
-
-    UserService userService;
+    protected UserService userService;
 
     public AdminConsole(User user, TaskService taskService, UserService userService) {
         super(user, taskService);
@@ -20,35 +15,13 @@ public class AdminConsole extends UserConsole {
     }
 
     @Override
-    public boolean parseCommand(String command, String query) {
-        this.query = query;
-        return switch (command) {
-            case "deluser" -> deleteUserOption = true;
-            case "delusertasks" -> deleteUserTasksOption = true;
-            case "listusers" -> listUsersOption = true;
-            case "listtasks" -> listTasksOption = true;
+    public void parseCommand(String command, String query) {
+        switch (command) {
+            case "deluser" -> deleteUser();
+            case "delusertasks" -> deleteUserTasks();
+            case "listusers" -> listUsers();
+            case "listtasks" -> listTasks();
             default -> super.parseCommand(command, query);
-        };
-    }
-
-    @Override
-    public void executeCommands() {
-        super.executeCommands();
-        if (deleteUserOption) {
-            deleteUser();
-            deleteUserOption = false;
-        }
-        if (listUsersOption) {
-            listUsers();
-            listUsersOption = false;
-        }
-        if (deleteUserTasksOption) {
-            deleteUserTasks();
-            deleteUserTasksOption = false;
-        }
-        if (listTasksOption) {
-            listTasks();
-            listTasksOption = false;
         }
     }
 

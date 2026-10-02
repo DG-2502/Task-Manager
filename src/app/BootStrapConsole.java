@@ -9,7 +9,6 @@ public class BootStrapConsole {
         String line = scanner.nextLine().trim();
         if (any) {
             return line;
-
         }
         while (true) {
             if (line.matches("[a-zA-Z]+")) {
