@@ -7,10 +7,8 @@ import service.UserService;
 import java.util.List;
 
 public class AdminConsole extends UserConsole {
-    protected UserService userService;
-
     public AdminConsole(User user, TaskService taskService, UserService userService) {
-        super(user, taskService);
+        super(user, taskService, userService);
         this.userService = userService;
     }
 
@@ -38,10 +36,6 @@ public class AdminConsole extends UserConsole {
     private void deleteUser() {
         System.out.println("Enter the id of the user to delete:");
         int userId = readInt(0, Integer.MAX_VALUE);
-        if (userId == user.getID()) {
-            System.out.println("You can not delete yourself");
-            return;
-        }
         try {
             userService.deleteUserByID(userId, user);
         } catch (Exception e) {
@@ -64,7 +58,7 @@ public class AdminConsole extends UserConsole {
     }
 
     private void listUsers() {
-        List<User> users = userService.getUsers();
+        List<User> users = userService.getUsers(user);
         for (User user : users) {
             System.out.println(user);
         }

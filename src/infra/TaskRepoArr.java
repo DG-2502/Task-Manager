@@ -11,12 +11,16 @@ public class TaskRepoArr implements TaskRepo {
     protected int ID = -1;
     protected ArrayList<Task> tasks = new ArrayList<>();
 
+    private Task copy(Task task) {
+        Task copy = new Task(task.getTitle(), task.getStartDate(), task.isActive(), task.getCreatorID());
+        copy.setID(task.getID());
+        return copy;
+    }
+
     @Override
     public Task getById(int id) {
         for (Task task : tasks) {
-            if (task.getID() == id) {
-                return task;
-            }
+            if (task.getID() == id) return copy(task);
         }
         throw new TaskNotFoundException(id);
     }
@@ -29,28 +33,28 @@ public class TaskRepoArr implements TaskRepo {
 
     @Override
     public void update(Task updatedTask) {
-        Task existingTask = getById(updatedTask.getID());
-
-        existingTask.setActive(updatedTask.isActive());
-        existingTask.setTitle(updatedTask.getTitle());
-        existingTask.setStartDate(updatedTask.getStartDate());
+        for (int i = 0; i < tasks.size(); i++) {
+            if (tasks.get(i).getID() == updatedTask.getID()) {
+                tasks.set(i, updatedTask);
+                return;
+            }
+        }
+        throw new TaskNotFoundException(updatedTask.getID());
     }
 
     @Override
     public void delete(int id) {
-        Task task = getById(id);
-
-        tasks.remove(task);
+        tasks.removeIf(task -> task.getID() == id);
     }
 
     @Override
     public List<Task> getByUser(int userID) {
-        return tasks.stream().filter(task -> task.getCreatorID() == userID).toList();
+        return tasks.stream().filter(task -> task.getCreatorID() == userID).map(this::copy).toList();
     }
 
     @Override
     public List<Task> getByStateAndUser(boolean state, int userID) {
-        return getByUser(userID).stream().filter(task -> task.isActive() == state).toList();
+        return tasks.stream().filter(task -> task.isActive() == state && task.getCreatorID() == userID).map(this::copy).toList();
     }
 
     @Override

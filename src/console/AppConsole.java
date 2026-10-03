@@ -55,7 +55,7 @@ public class AppConsole extends BasicConsole {
             if (user.isAdmin()) {
                 this.userConsole = new AdminConsole(user, taskService, userService);
             } else {
-                this.userConsole = new UserConsole(user, taskService);
+                this.userConsole = new UserConsole(user, taskService, userService);
             }
             System.out.println("Logged in as: " + user);
         } catch (Exception e) {

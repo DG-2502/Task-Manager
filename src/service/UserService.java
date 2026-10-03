@@ -1,9 +1,7 @@
 package service;
 
 import domain.User;
-import exception.AccessDeniedException;
-import exception.AuthenticationException;
-import exception.ValidationException;
+import exception.*;
 import repo.TaskRepo;
 import repo.UserRepo;
 
@@ -52,15 +50,59 @@ public class UserService {
         userRepo.add(user);
     }
 
-    public List<User> getUsers() {
+    public User update(User requester, User updatedUser) {
+        User user = userRepo.getById(updatedUser.getID());
+
+        if (!requester.isAdmin() && user.getID() != requester.getID()) {
+            throw new AccessDeniedException("Only admins can update other users");
+        }
+
+        if (!requester.isAdmin() && user.isAdmin()) {
+            throw new AccessDeniedException("Only admins can change the admin status");
+        }
+
+        if (requester.isAdmin() && !user.isAdmin() && requester.getID() == user.getID()) {
+            throw new AccessDeniedException("Admins cannot change themselves to users");
+        }
+
+        Optional<User> optionalUser = userRepo.getByUserName(updatedUser.getUsername());
+        if (optionalUser.isPresent() && optionalUser.get().getID() != updatedUser.getID()) {
+            throw new ValidationException("Username: " + updatedUser.getUsername() + " is already taken");
+        }
+
+        userRepo.update(updatedUser);
+        return userRepo.getById(updatedUser.getID());
+    }
+
+    public List<User> getUsers(User requester) {
+        if (!requester.isAdmin()) {
+            throw new AccessDeniedException("Only admins can do that");
+        }
         return userRepo.get();
     }
 
-    public void deleteUserByID(int ID, User user) {
-        if (!user.isAdmin()) {
+    public void deleteUserByID(int ID, User requester) {
+        if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");
+        }
+        if (ID == requester.getID()) {
+            throw new AccessDeniedException("Admins cannot delete themselves");
         }
         taskRepo.deleteByUserId(ID);
         userRepo.delete(ID);
+    }
+
+    public User getById(int id, User requester) {
+        User user = userRepo.getById(id);
+
+        if (!requester.isAdmin() && user.getID() != requester.getID()) {
+            throw new UserNotFoundException(id);
+        }
+
+        return user;
+    }
+
+    public boolean isEmpty() {
+        return userRepo.isEmpty();
     }
 }

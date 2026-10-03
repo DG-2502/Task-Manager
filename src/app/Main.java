@@ -15,7 +15,7 @@ void main() throws IOException {
     TaskService taskService = new TaskService(taskRepo);
     UserService userService = new UserService(userRepo, passwordHasher, taskRepo);
 
-    if (userService.getUsers().isEmpty()) {
+    if (userService.isEmpty()) {
         System.out.println("Bootstrapping the user's repository");
         BootStrapConsole console = new BootStrapConsole();
         while (true) {

@@ -11,6 +11,7 @@ public interface UserRepo {
     void update(User user);
     void delete(int id);
     List<User> get();
+    boolean isEmpty();
 
     Optional<User> getByUserName(String userName);
 }
