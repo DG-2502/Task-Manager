@@ -3,18 +3,22 @@ package domain;
 public class User {
     private int ID;
     private String username;
-    private boolean admin;
+    private Status status;
     private String passwordHash;
 
-    public User(String username, boolean admin, String passwordHash) {
+    public enum Status {
+        ADMIN, USER
+    }
+
+    public User(String username, Status status, String passwordHash) {
         this.username = username;
-        this.admin = admin;
+        this.status = status;
         this.passwordHash = passwordHash;
     }
 
     @Override
     public String toString() {
-        return ID + " " + username + " " + (admin ? "Admin" : "User");
+        return ID + " " + username + " " + status;
     }
 
     public int getID() {
@@ -33,12 +37,12 @@ public class User {
         this.username = username;
     }
 
-    public boolean isAdmin() {
-        return admin;
+    public Status getStatus() {
+        return status;
     }
 
-    public void setAdmin(boolean admin) {
-        this.admin = admin;
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
     public String getPasswordHash() {
@@ -47,5 +51,9 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public boolean isAdmin() {
+        return status == Status.ADMIN;
     }
 }

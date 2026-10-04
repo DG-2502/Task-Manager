@@ -1,5 +1,7 @@
 import console.AppConsole;
 import app.BootStrapConsole;
+import domain.Task;
+import domain.User;
 import exception.ValidationException;
 import infra.PasswordHasherBCrypt;
 import infra.TaskRepoFile;
@@ -12,7 +14,7 @@ void main() throws IOException {
     UserRepo userRepo = new UserRepoFile("data/users.txt");
     PasswordHasher passwordHasher = new PasswordHasherBCrypt();
 
-    TaskService taskService = new TaskService(taskRepo);
+    TaskService taskService = new TaskService(taskRepo, userRepo);
     UserService userService = new UserService(userRepo, passwordHasher, taskRepo);
 
     if (userService.isEmpty()) {
@@ -20,7 +22,7 @@ void main() throws IOException {
         BootStrapConsole console = new BootStrapConsole();
         while (true) {
             try {
-                userService.register(console.getUsername(), console.getPassword(), true);
+                userService.register(console.getUsername(), console.getPassword(), User.Status.ADMIN);
                 break;
             } catch (ValidationException e) {
                 System.out.println(e.getMessage());

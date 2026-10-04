@@ -13,7 +13,7 @@ public class UserRepoArr implements UserRepo {
     protected ArrayList<User> users = new ArrayList<>();
 
     private User copy(User user) {
-        User copy = new User(user.getUsername(), user.isAdmin(), user.getPasswordHash());
+        User copy = new User(user.getUsername(), user.getStatus(), user.getPasswordHash());
         copy.setID(user.getID());
         return copy;
     }

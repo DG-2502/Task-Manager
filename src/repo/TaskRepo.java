@@ -11,7 +11,7 @@ public interface TaskRepo {
     void delete(int id);
     List<Task> getByUser(int userId);
 
-    List<Task> getByStateAndUser(boolean state, int userId);
-    void deleteByState(boolean state, int userId);
+    List<Task> getByStateAndUser(Task.State state, int userId);
+    void deleteByStateAndUser(Task.State state, int userId);
     void deleteByUserId(int userId);
 }

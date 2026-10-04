@@ -34,44 +34,92 @@ public class UserService {
         throw new AuthenticationException("The username or password is incorrect");
     }
 
-    public void register(String username, String password, boolean isAdmin) throws ValidationException {
+    public void register(String username, String password, User.Status status) throws ValidationException {
+        validatePassword(password);
+        validateUsername(username);
+
+        String passwordHash = passwordHasher.hash(password);
+
+        User user = new User(username, status, passwordHash);
+        userRepo.add(user);
+    }
+
+    public void createNewUser(User requester, String username, String password, User.Status status) throws AccessDeniedException {
+        if (!requester.isAdmin()) {
+            throw new AccessDeniedException("Only admins can create new users");
+        }
+
+        register(username, password, status);
+    }
+
+    private void validatePassword(String password) throws ValidationException {
+        if (!password.matches("\\w+")) {
+            throw new ValidationException("Password can only contain letters, digits and underscore");
+        }
         if (password.length() < 3) {
             throw new ValidationException("Password should be at least 3 characters long");
         }
+    }
 
+    private void validateUsername(String username) {
+        if (!username.matches("\\w+")) {
+            throw new ValidationException("Username can only contain letters, digits and underscore");
+        }
         Optional<User> optionalUser = userRepo.getByUserName(username);
         if (optionalUser.isPresent()) {
             throw new ValidationException("Username: " + username + " is already taken");
         }
-
-        String passwordHash = passwordHasher.hash(password);
-
-        User user = new User(username, isAdmin, passwordHash);
-        userRepo.add(user);
     }
 
-    public User update(User requester, User updatedUser) {
-        User user = userRepo.getById(updatedUser.getID());
+    public User update(User requester, int userId, String newUsername, User.Status newStatus) throws AccessDeniedException, ValidationException {
+        User user = userRepo.getById(userId);
+        if (newStatus == null) {
+            newStatus = user.getStatus();
+        }
 
-        if (!requester.isAdmin() && user.getID() != requester.getID()) {
+        boolean isStatusAdmin = newStatus == User.Status.ADMIN;
+        if (!requester.isAdmin() && userId != requester.getID()) {
             throw new AccessDeniedException("Only admins can update other users");
         }
 
-        if (!requester.isAdmin() && user.isAdmin()) {
+        if (!requester.isAdmin() && newStatus != user.getStatus()) {
             throw new AccessDeniedException("Only admins can change the admin status");
         }
 
-        if (requester.isAdmin() && !user.isAdmin() && requester.getID() == user.getID()) {
+        if (requester.isAdmin() && !isStatusAdmin && requester.getID() == userId) {
             throw new AccessDeniedException("Admins cannot change themselves to users");
         }
 
-        Optional<User> optionalUser = userRepo.getByUserName(updatedUser.getUsername());
-        if (optionalUser.isPresent() && optionalUser.get().getID() != updatedUser.getID()) {
-            throw new ValidationException("Username: " + updatedUser.getUsername() + " is already taken");
+        if (newUsername != null && !newUsername.isBlank()) {
+            Optional<User> optionalUser = userRepo.getByUserName(newUsername);
+            if (optionalUser.isPresent() && optionalUser.get().getID() != userId) {
+                throw new ValidationException("Username: " + newUsername + " is already taken");
+            }
         }
 
-        userRepo.update(updatedUser);
-        return userRepo.getById(updatedUser.getID());
+        if (newUsername != null && !newUsername.isBlank()) user.setUsername(newUsername);
+        user.setStatus(newStatus);
+        userRepo.update(user);
+        return user;
+    }
+
+    public void changePassword(User requester, int userId, String password, String newPassword) throws AccessDeniedException, AuthenticationException, ValidationException {
+        if (!requester.isAdmin() && requester.getID() != userId) {
+            throw new AccessDeniedException("Only admins can change others' password");
+        }
+
+        User user = userRepo.getById(userId);
+
+        if (requester.getID() == userId) {
+            if (!passwordHasher.matches(password, user.getPasswordHash())) {
+                throw new AuthenticationException("Current password is incorrect");
+            }
+        }
+
+        validatePassword(newPassword);
+
+        user.setPasswordHash(passwordHasher.hash(newPassword));
+        userRepo.update(user);
     }
 
     public List<User> getUsers(User requester) {

@@ -2,10 +2,14 @@ package console;
 
 import domain.Task;
 import domain.User;
+import exception.AccessDeniedException;
+import exception.UserNotFoundException;
 import service.TaskService;
 import service.UserService;
 
 import java.util.List;
+import java.util.Optional;
+
 
 public class UserConsole extends BasicConsole {
     protected User user;
@@ -21,11 +25,13 @@ public class UserConsole extends BasicConsole {
     @Override
     public void parseCommand(String command, String query) {
         switch (command) {
-            case "create" -> createTask();
-            case "display" -> displayTasks(user.getID());
+            case "create" -> create(query);
+            case "display" -> display(query);
             case "close" -> closeTask();
-            case "delete" -> deleteTasks(query);
+            case "delete" -> delete(query);
+            case "delclosed" -> deleteClosed(query);
             case "update" -> update(query);
+            case "password" -> changePassword();
             default -> super.parseCommand(command, query);
         }
     }
@@ -36,31 +42,61 @@ public class UserConsole extends BasicConsole {
         System.out.println("exit - Log out of the system");
         System.out.println("create - Create a new task");
         System.out.println("display - display tasks");
-        System.out.println("close - close an active task");
-        System.out.println("delete [closed] - delete closed task\\-s");
-        System.out.println("update task/info - update information about a task or yourself");
+        System.out.println("close - close a task");
+        System.out.println("delete - delete a task");
+        System.out.println("delclosed - delete all closed tasks");
+        System.out.println("update task - update information about a task");
+        System.out.println("update info - update information about yourself");
+        System.out.println("password - change your password");
     }
 
-    private void createTask() {
-        System.out.println("Create a new task");
+    protected void create(String query) {
+        int userId = user.getID();
+        if (query.equalsIgnoreCase("task") && user.isAdmin()) {
+            System.out.println("Enter the id of a user whom to create a task:");
+            Optional<Integer> optional = readInt();
+            if (optional.isEmpty()) {
+                System.out.println("The id should be a number");
+                return;
+            }
+
+            userId = optional.get();
+        }
         System.out.println("Enter the title of the task");
-        String title = readName(true);
-        taskService.createTask(title, user);
-        System.out.println("Task was successfully created");
+        String title = readLine();
+        try {
+            taskService.createTask(user, userId, title);
+            System.out.println("Task was successfully created");
+        } catch (AccessDeniedException | UserNotFoundException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
-    protected void displayTasks(int userId) {
+    protected void display(String query) {
+        int userId = user.getID();
+        if (query.equalsIgnoreCase("task") && user.isAdmin()) {
+            System.out.println("Enter the id of a user whose tasks to display");
+            Optional<Integer> optional = readInt();
+            if (optional.isEmpty()) {
+                System.out.println("The id should be a number");
+                return;
+            }
+
+            userId = optional.get();
+        }
         System.out.println("DISPLAY options:");
         System.out.println("0: All");
         System.out.println("1: Active");
         System.out.println("2: Closed");
-        int option = readInt(0, 2);
+        Optional<Integer> optional = readInt();
+        int option = optional.orElse(0);
+
         TaskService.TaskFilter filter = switch (option) {
             case 1 -> TaskService.TaskFilter.ACTIVE;
             case 2 -> TaskService.TaskFilter.CLOSED;
             default -> TaskService.TaskFilter.ALL;
         };
-        List<Task> tasks = taskService.getTasks(filter, userId);
+        List<Task> tasks = taskService.getTasks(user, filter, userId);
         System.out.println("*** Tasks ***");
         for (Task task : tasks) {
             System.out.println(task);
@@ -72,7 +108,13 @@ public class UserConsole extends BasicConsole {
 
     private void closeTask() {
         System.out.println("Enter the id of the task to close");
-        int id = readInt(0, Integer.MAX_VALUE);
+        Optional<Integer> optional = readInt();
+        if (optional.isEmpty()) {
+            System.out.println("Not a number");
+            return;
+        }
+
+        int id = optional.get();
         try {
             taskService.closeTask(id, user);
         } catch (Exception e) {
@@ -82,16 +124,17 @@ public class UserConsole extends BasicConsole {
         System.out.println("Task with id: " + id + " was closed");
     }
 
-    private void deleteTasks(String query) {
-        if (query.equals("closed")) {
-            taskService.deleteClosed(user);
-            System.out.println("Deleted all closed tasks");
+    protected void delete(String query) {
+        System.out.println("Enter the id of the task to delete");
+        Optional<Integer> optional = readInt();
+        if (optional.isEmpty()) {
+            System.out.println("Not a number");
             return;
         }
-        System.out.println("Enter the id of the task to delete");
-        int id = readInt(0, Integer.MAX_VALUE);
+
+        int id = optional.get();
         try {
-            taskService.deleteTask(id, user);
+            taskService.deleteTask(user, id);
         } catch (Exception e) {
             System.out.println(e.getMessage());
             return;
@@ -99,7 +142,28 @@ public class UserConsole extends BasicConsole {
         System.out.println("Task with id: " + id + " was deleted");
     }
 
-    private void update(String query) {
+    protected void deleteClosed(String query) {
+        int userId = user.getID();
+        if (query.equalsIgnoreCase("user") && user.isAdmin()) {
+            System.out.println("Enter the id of a user whose tasks to display");
+            Optional<Integer> optional = readInt();
+            if (optional.isEmpty()) {
+                System.out.println("The id should be a number");
+                return;
+            }
+
+            userId = optional.get();
+        }
+
+        try {
+            taskService.deleteClosed(user, userId);
+            System.out.println("Successfully deleted all closed tasks");
+        } catch (AccessDeniedException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    protected void update(String query) {
         switch (query) {
             case "task" -> updateTask();
             case "info" -> updateInfo();
@@ -109,9 +173,14 @@ public class UserConsole extends BasicConsole {
 
     private void updateTask() {
         System.out.println("Enter the ID of a task to update");
-        int taskId = readInt(0, Integer.MAX_VALUE);
-        Task task;
+        Optional<Integer> optional = readInt();
+        if (optional.isEmpty()) {
+            System.out.println("Not a number");
+            return;
+        }
 
+        int taskId = optional.get();
+        Task task;
         try {
             task = taskService.getById(taskId, user);
         } catch (Exception e) {
@@ -121,13 +190,20 @@ public class UserConsole extends BasicConsole {
 
         System.out.println("Title is: " + task.getTitle());
         System.out.println("Enter new title:");
-        String newTitle = readName(true);
-        if (!newTitle.isEmpty()) {
-            task.setTitle(newTitle);
-        }
+        String newTitle = readLine();
+
+        System.out.println("State is: " + task.getState());
+        System.out.println("Enter new state:");
+        System.out.println("0: Closed");
+        System.out.println("1: Active");
+        Task.State newState = switch (readInt().orElse(null)) {
+            case 0 -> Task.State.CLOSED;
+            case 1 -> Task.State.ACTIVE;
+            case null, default -> null;
+        };
 
         try {
-            taskService.updateTask(task, user);
+            taskService.updateTask(user, taskId, newTitle, newState);
             System.out.println("Successfully updated the task");
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -135,19 +211,34 @@ public class UserConsole extends BasicConsole {
     }
 
     private void updateInfo() {
-        User updatedUser = userService.getById(user.getID(), user);
-
         System.out.println("Your username is: " + user.getUsername());
         System.out.println("Enter new username:");
-        String newUsername = readName(true);
+        String newUsername = readLine();
 
-        if (!newUsername.isEmpty()) {
-            updatedUser.setUsername(newUsername);
+        try {
+            user = userService.update(user, user.getID(), newUsername, null);
+            System.out.println("Successfully updated the info");
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    protected void changePassword() {
+        System.out.println("Enter your current password: ");
+        String password = readLine();
+        System.out.println("Enter new password: ");
+        String newPassword = readLine();
+        System.out.println("Repeat new password: ");
+        String repeatPassword = readLine();
+
+        if (!newPassword.equals(repeatPassword)) {
+            System.out.println("The new password are different");
+            return;
         }
 
         try {
-            user = userService.update(user, updatedUser);
-            System.out.println("Successfully updated the info");
+            userService.changePassword(user, user.getID(), password, newPassword);
+            System.out.println("Changed the password successfully");
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }

@@ -39,7 +39,7 @@ public class UserRepoFile extends UserRepoArr {
 
     private void parseLine(String line) {
         String[] args = line.split("`SPLITTER`");
-        User newUser = new User(args[1], Boolean.parseBoolean(args[2]), args[3]);
+        User newUser = new User(args[1], User.Status.valueOf(args[2]), args[3]);
         newUser.setID(Integer.parseInt(args[0]));
         users.add(newUser);
     }
@@ -52,7 +52,7 @@ public class UserRepoFile extends UserRepoArr {
             for (User user : users) {
                 line = user.getID() + "`SPLITTER`";
                 line += user.getUsername() + "`SPLITTER`";
-                line += user.isAdmin() + "`SPLITTER`";
+                line += user.getStatus() + "`SPLITTER`";
                 line += user.getPasswordHash() + "\n";
                 fWriter.write(line);
             }

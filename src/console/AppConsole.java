@@ -1,6 +1,8 @@
 package console;
 
 import domain.User;
+import exception.AuthenticationException;
+import exception.ValidationException;
 import service.TaskService;
 import service.UserService;
 
@@ -50,15 +52,15 @@ public class AppConsole extends BasicConsole {
     private void login(String userName) {
         try {
             System.out.println("Enter the password: ");
-            String password = readName(true);
+            String password = readLine();
             User user = userService.login(userName, password);
-            if (user.isAdmin()) {
+            if (user.getStatus() == User.Status.ADMIN) {
                 this.userConsole = new AdminConsole(user, taskService, userService);
             } else {
                 this.userConsole = new UserConsole(user, taskService, userService);
             }
             System.out.println("Logged in as: " + user);
-        } catch (Exception e) {
+        } catch (AuthenticationException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -66,19 +68,19 @@ public class AppConsole extends BasicConsole {
     private boolean register(String userName) {
         try {
             System.out.println("Enter the password: ");
-            String password = readName(true);
+            String password = readLine();
             System.out.println("Repeat the password: ");
-            String passwordRepeat = readName(true);
+            String passwordRepeat = readLine();
 
             if (!password.equals(passwordRepeat)) {
                 System.out.println("The passwords are different");
                 return false;
             }
 
-            userService.register(userName, password, false);
+            userService.register(userName, password, User.Status.USER);
             System.out.println("Registered successfully");
             return true;
-        } catch (Exception e) {
+        } catch (ValidationException e) {
             System.out.println(e.getMessage());
         }
         return false;

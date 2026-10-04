@@ -1,5 +1,6 @@
 package console;
 
+import java.util.Optional;
 import java.util.Scanner;
 
 public abstract class BasicConsole {
@@ -18,33 +19,17 @@ public abstract class BasicConsole {
         }
     }
 
-    public int readInt(int lower, int upper) {
-        while (true) {
-            String request = scanner.nextLine().trim();
-            if (request.matches("\\d+")) {
-                int number = Integer.parseInt(request);
-                if (number >= lower & number <= upper) {
-                    return number;
-                }
-                System.out.println("Please type a number between " + lower + " and " + upper);
-            } else {
-                System.out.println("Please type a number!");
-            }
+    public Optional<Integer> readInt() {
+        String request = scanner.nextLine().trim();
+        if (request.matches("\\d+")) {
+            return Optional.of(Integer.parseInt(request));
+        } else {
+            return Optional.empty();
         }
     }
 
-    public String readName(boolean anyName) {
-        String line = scanner.nextLine().trim();
-        if (anyName) {
-            return line;
-        }
-        while (true) {
-            if (line.matches("[a-zA-Z]+")) {
-                return line;
-            }
-            System.out.println("Please enter one word!");
-            line = scanner.nextLine().trim();
-        }
+    public String readLine() {
+        return scanner.nextLine().trim();
     }
 
     public void parseCommand(String command, String query) {
