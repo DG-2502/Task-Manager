@@ -1,21 +1,24 @@
 import console.AppConsole;
 import app.BootStrapConsole;
-import domain.Task;
 import domain.User;
 import exception.ValidationException;
-import infra.PasswordHasherBCrypt;
-import infra.TaskRepoFile;
-import infra.UserRepoFile;
+import infra.*;
+import org.postgresql.ds.PGSimpleDataSource;
 import repo.*;
 import service.*;
 
-void main() throws IOException {
-    TaskRepo taskRepo = new TaskRepoFile("data/tasks.txt");
-    UserRepo userRepo = new UserRepoFile("data/users.txt");
+void main() {
+    PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
+    pgSimpleDataSource.setURL(System.getenv("DB_URL"));
+    pgSimpleDataSource.setUser(System.getenv("DB_USER"));
+    pgSimpleDataSource.setPassword(System.getenv("DB_PASSWORD"));
+
+    TaskRepo taskRepo = new TaskRepoPSQL(pgSimpleDataSource);
+    UserRepo userRepo = new UserRepoPSQL(pgSimpleDataSource);
     PasswordHasher passwordHasher = new PasswordHasherBCrypt();
 
     TaskService taskService = new TaskService(taskRepo, userRepo);
-    UserService userService = new UserService(userRepo, passwordHasher, taskRepo);
+    UserService userService = new UserService(userRepo, passwordHasher);
 
     if (userService.isEmpty()) {
         System.out.println("Bootstrapping the user's repository");

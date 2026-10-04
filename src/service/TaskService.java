@@ -3,6 +3,7 @@ package service;
 import domain.*;
 import exception.AccessDeniedException;
 import exception.TaskNotFoundException;
+import exception.UserNotFoundException;
 import repo.TaskRepo;
 import repo.UserRepo;
 
@@ -18,7 +19,7 @@ public class TaskService {
         this.userRepo = userRepo;
     }
 
-    public void createTask(User requester, int userId, String title) throws AccessDeniedException{
+    public void createTask(User requester, int userId, String title) throws AccessDeniedException, UserNotFoundException {
         if (!requester.isAdmin() && userId != requester.getID()) {
             throw new AccessDeniedException("Only admins can create tasks for another user");
         }
@@ -72,7 +73,7 @@ public class TaskService {
         ALL, ACTIVE, CLOSED;
     }
 
-    public List<Task> getTasks(User requester, TaskFilter filter, int userID) {
+    public List<Task> getTasks(User requester, TaskFilter filter, int userID) throws AccessDeniedException {
         if (!requester.isAdmin() && userID != requester.getID()) {
             throw new AccessDeniedException("Only admins can get others' tasks");
         }
@@ -92,7 +93,7 @@ public class TaskService {
         taskRepo.deleteByUserId(id);
     }
 
-    public Task getById(int id, User requester) {
+    public Task getById(int id, User requester) throws TaskNotFoundException{
         Task task = taskRepo.getById(id);
 
         if (!requester.isAdmin() && task.getCreatorID() != requester.getID()) {

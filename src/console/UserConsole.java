@@ -2,8 +2,7 @@ package console;
 
 import domain.Task;
 import domain.User;
-import exception.AccessDeniedException;
-import exception.UserNotFoundException;
+import exception.*;
 import service.TaskService;
 import service.UserService;
 
@@ -96,7 +95,15 @@ public class UserConsole extends BasicConsole {
             case 2 -> TaskService.TaskFilter.CLOSED;
             default -> TaskService.TaskFilter.ALL;
         };
-        List<Task> tasks = taskService.getTasks(user, filter, userId);
+
+        List<Task> tasks;
+        try {
+            tasks = taskService.getTasks(user, filter, userId);
+        } catch (AccessDeniedException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
+
         System.out.println("*** Tasks ***");
         for (Task task : tasks) {
             System.out.println(task);
@@ -117,7 +124,7 @@ public class UserConsole extends BasicConsole {
         int id = optional.get();
         try {
             taskService.closeTask(id, user);
-        } catch (Exception e) {
+        } catch (TaskNotFoundException e) {
             System.out.println(e.getMessage());
             return;
         }
@@ -135,7 +142,7 @@ public class UserConsole extends BasicConsole {
         int id = optional.get();
         try {
             taskService.deleteTask(user, id);
-        } catch (Exception e) {
+        } catch (TaskNotFoundException e) {
             System.out.println(e.getMessage());
             return;
         }
@@ -145,7 +152,7 @@ public class UserConsole extends BasicConsole {
     protected void deleteClosed(String query) {
         int userId = user.getID();
         if (query.equalsIgnoreCase("user") && user.isAdmin()) {
-            System.out.println("Enter the id of a user whose tasks to display");
+            System.out.println("Enter the id of a user whose tasks to delete");
             Optional<Integer> optional = readInt();
             if (optional.isEmpty()) {
                 System.out.println("The id should be a number");
@@ -183,7 +190,7 @@ public class UserConsole extends BasicConsole {
         Task task;
         try {
             task = taskService.getById(taskId, user);
-        } catch (Exception e) {
+        } catch (TaskNotFoundException e) {
             System.out.println(e.getMessage());
             return;
         }
@@ -205,7 +212,7 @@ public class UserConsole extends BasicConsole {
         try {
             taskService.updateTask(user, taskId, newTitle, newState);
             System.out.println("Successfully updated the task");
-        } catch (Exception e) {
+        } catch (TaskNotFoundException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -218,7 +225,7 @@ public class UserConsole extends BasicConsole {
         try {
             user = userService.update(user, user.getID(), newUsername, null);
             System.out.println("Successfully updated the info");
-        } catch (Exception e) {
+        } catch (AccessDeniedException | ValidationException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -239,7 +246,7 @@ public class UserConsole extends BasicConsole {
         try {
             userService.changePassword(user, user.getID(), password, newPassword);
             System.out.println("Changed the password successfully");
-        } catch (Exception e) {
+        } catch (AccessDeniedException | ValidationException | AuthenticationException | UserNotFoundException e) {
             System.out.println(e.getMessage());
         }
     }

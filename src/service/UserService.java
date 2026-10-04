@@ -2,7 +2,6 @@ package service;
 
 import domain.User;
 import exception.*;
-import repo.TaskRepo;
 import repo.UserRepo;
 
 import java.util.List;
@@ -12,12 +11,10 @@ import java.util.Optional;
 public class UserService {
     private final UserRepo userRepo;
     private final PasswordHasher passwordHasher;
-    private final TaskRepo taskRepo;
 
-    public UserService(UserRepo userRepo, PasswordHasher passwordHasher, TaskRepo taskRepo) {
+    public UserService(UserRepo userRepo, PasswordHasher passwordHasher) {
         this.userRepo = userRepo;
         this.passwordHasher = passwordHasher;
-        this.taskRepo = taskRepo;
     }
 
     public User login(String username, String password) throws AuthenticationException {
@@ -103,7 +100,7 @@ public class UserService {
         return user;
     }
 
-    public void changePassword(User requester, int userId, String password, String newPassword) throws AccessDeniedException, AuthenticationException, ValidationException {
+    public void changePassword(User requester, int userId, String password, String newPassword) throws AccessDeniedException, AuthenticationException, ValidationException, UserNotFoundException {
         if (!requester.isAdmin() && requester.getID() != userId) {
             throw new AccessDeniedException("Only admins can change others' password");
         }
@@ -129,18 +126,17 @@ public class UserService {
         return userRepo.get();
     }
 
-    public void deleteUserByID(int ID, User requester) {
+    public void deleteUserByID(int ID, User requester) throws AccessDeniedException {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");
         }
         if (ID == requester.getID()) {
             throw new AccessDeniedException("Admins cannot delete themselves");
         }
-        taskRepo.deleteByUserId(ID);
         userRepo.delete(ID);
     }
 
-    public User getById(int id, User requester) {
+    public User getById(int id, User requester) throws UserNotFoundException {
         User user = userRepo.getById(id);
 
         if (!requester.isAdmin() && user.getID() != requester.getID()) {

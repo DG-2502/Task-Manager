@@ -1,6 +1,10 @@
 package console;
 
 import domain.User;
+import exception.AccessDeniedException;
+import exception.AuthenticationException;
+import exception.UserNotFoundException;
+import exception.ValidationException;
 import service.TaskService;
 import service.UserService;
 
@@ -110,7 +114,7 @@ public class AdminConsole extends UserConsole {
         int userId = optional.get();
         try {
             userService.deleteUserByID(userId, user);
-        } catch (Exception e) {
+        } catch (AccessDeniedException e) {
             System.out.println(e.getMessage());
             return;
         }
@@ -135,7 +139,13 @@ public class AdminConsole extends UserConsole {
         }
 
         int userId = optional.get();
-        User userToUpdate = userService.getById(userId, user);
+        User userToUpdate;
+        try {
+            userToUpdate = userService.getById(userId, user);
+        } catch (UserNotFoundException e) {
+            System.out.println(e.getMessage());
+            return;
+        }
         System.out.println("Username is: " + userToUpdate.getUsername());
         System.out.println("Enter new username:");
         String newUsername = readLine();
@@ -156,7 +166,7 @@ public class AdminConsole extends UserConsole {
                 user = newUser;
             }
             System.out.println("Successfully updated the info");
-        } catch (Exception e) {
+        } catch (AccessDeniedException | ValidationException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -172,7 +182,7 @@ public class AdminConsole extends UserConsole {
         int userId = optional.get();
         try {
             taskService.deleteTasksByUserId(userId, user);
-        } catch (Exception e) {
+        } catch (AccessDeniedException e) {
             System.out.println(e.getMessage());
             return;
         }
@@ -206,7 +216,7 @@ public class AdminConsole extends UserConsole {
         try {
             userService.changePassword(user, userId, password, newPassword);
             System.out.println("Changed the password successfully");
-        } catch (Exception e) {
+        } catch (AccessDeniedException | ValidationException | AuthenticationException | UserNotFoundException e) {
             System.out.println(e.getMessage());
         }
     }
