@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Task App</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<div class="card">
+    <h1>Task App</h1>
+    <p class="subtitle">A simple task manager</p>
+
+    <div class="button-row">
+        <a class="btn btn-primary" th:href="@{/login}">Log in</a>
+        <a class="btn btn-secondary" th:href="@{/register}">Register</a>
+    </div>
+</div>
+</body>
+</html>

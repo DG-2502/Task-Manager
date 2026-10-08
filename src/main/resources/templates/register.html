@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<script>
+    document.querySelector('form').addEventListener('submit', function (e) {
+        const pw = document.querySelector('input[name="password"]').value;
+        const confirm = document.querySelector('input[name="passwordConfirm"]').value;
+        if (pw !== confirm) {
+            e.preventDefault();
+            const field = document.querySelector('input[name="passwordConfirm"]');
+            field.classList.add('input-error');
+            // Remove on next input
+            field.addEventListener('input', () => field.classList.remove('input-error'), { once: true });
+        }
+    });
+</script>
+<body>
+<div class="card">
+    <h1>Create account</h1>
+
+    <form method="post" action="/register">
+        <label>
+            <input type="text" name="username" placeholder="Username"
+                   th:value="${username}"
+                   th:classappend="${usernameError != null} ? 'input-error' : ''">
+        </label>
+        <p class="field-error" th:if="${usernameError}" th:text="${usernameError}"></p>
+
+        <label>
+            <input type="password" name="password" placeholder="Password"
+                   th:classappend="${passwordError != null} ? 'input-error' : ''">
+        </label>
+        <p class="field-error" th:if="${passwordError}" th:text="${passwordError}"></p>
+
+        <label>
+            <input type="password" name="passwordConfirm" placeholder="Repeat password"
+                   th:classappend="${passwordConfirmError != null} ? 'input-error' : ''">
+        </label>
+        <p class="field-error" th:if="${passwordConfirmError}" th:text="${passwordConfirmError}"></p>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <p class="link-row">
+        Already have an account? <a th:href="@{/login}">Log in</a>
+    </p>
+</div>
+</body>
+</html>

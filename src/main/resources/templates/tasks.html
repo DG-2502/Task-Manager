@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My Tasks</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<div class="tasks-container">
+    <header class="tasks-header">
+        <div>
+            <h1>My tasks</h1>
+            <p class="subtitle-left" th:text="'Signed in as ' + ${username}">user</p>
+        </div>
+        <form method="post" action="/logout">
+            <button type="submit" class="btn-small btn-secondary">Log out</button>
+        </form>
+    </header>
+
+    <form method="post" action="/tasks" class="create-task-form">
+        <input type="text" name="title" placeholder="What needs to be done?" required maxlength="255">
+        <button type="submit" class="btn-small">Add</button>
+    </form>
+
+    <ul class="tasks" th:if="${!tasks.isEmpty()}">
+        <li th:each="task : ${tasks}"
+            th:classappend="${task.state.name() == 'CLOSED'} ? 'task closed' : 'task'">
+            <div class="task-body">
+                <div class="task-title" th:text="${task.title}">title</div>
+                <div class="task-meta">
+                    <span th:text="${task.startDate}">date</span>
+                    —
+                    <span th:text="${task.state}">state</span>
+                </div>
+            </div>
+
+            <details class="task-menu">
+                <summary aria-label="Task actions">⋮</summary>
+                <div class="menu-items">
+                    <form method="post"
+                          th:action="@{/tasks/{id}/close(id=${task.id})}"
+                          th:if="${task.state.name() == 'ACTIVE'}">
+                        <button type="submit">Close</button>
+                    </form>
+                    <form method="post"
+                          th:action="@{/tasks/{id}/reopen(id=${task.id})}"
+                          th:if="${task.state.name() == 'CLOSED'}">
+                        <button type="submit">Reopen</button>
+                    </form>
+                    <form method="post"
+                          th:action="@{/tasks/{id}/delete(id=${task.id})}"
+                          onsubmit="return confirm('Delete this task?');">
+                        <button type="submit" class="danger">Delete</button>
+                    </form>
+                </div>
+            </details>
+        </li>
+    </ul>
+
+    <p class="empty" th:if="${tasks.isEmpty()}">No tasks yet. Add one above.</p>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const menus = document.querySelectorAll('.task-menu');
+
+        menus.forEach(menu => {
+            menu.addEventListener('toggle', () => {
+                if (menu.open) {
+                    menus.forEach(m => {
+                        if (m !== menu) m.open = false;
+                    });
+                }
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.task-menu')) {
+                menus.forEach(m => m.open = false);
+            }
+        });
+    });
+</script>
+</body>
+</html>
