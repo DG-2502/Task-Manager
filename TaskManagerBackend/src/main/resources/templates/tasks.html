@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My tasks · Task App</title>
+</head>
+<body>
+
+<header>
+    <div>
+        <div>
+            <span>Task App</span>
+        </div>
+
+        <div>
+            <span>
+                Signed in as <strong th:text="${username}">user</strong>
+            </span>
+            <form method="post" action="/logout">
+                <button type="submit">Log out</button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<div>
+
+    <div>
+        <h1>My tasks</h1>
+        <p>
+            <span th:text="${tasks.size()}">0</span> task(s) on your list.
+        </p>
+    </div>
+
+    <form method="post" action="/tasks">
+        <input class="input"
+               type="text"
+               name="title"
+               placeholder="What needs to be done?"
+               required
+               maxlength="255"
+               autocomplete="off">
+        <button type="submit">Add task</button>
+    </form>
+
+    <ul th:if="${!tasks.isEmpty()}">
+        <li th:each="task : ${tasks}"
+            th:classappend="${task.state.name() == 'CLOSED'} ? 'task--closed' : ''">
+
+            <div>
+                <div th:text="${task.title}">title</div>
+                <div>
+                    <span th:text="${task.startDate}">date</span>
+                    <span th:classappend="${task.state.name() == 'CLOSED'} ? 'badge--muted' : 'badge--success'"
+                          th:text="${task.state}">state</span>
+                </div>
+            </div>
+
+            <details>
+                <summary aria-label="Task actions">&#8942;</summary>
+                <div>
+                    <form method="post"
+                          th:action="@{/tasks/{id}/close(id=${task.id})}"
+                          th:if="${task.state.name() == 'ACTIVE'}">
+                        <button type="submit">Mark as closed</button>
+                    </form>
+
+                    <form method="post"
+                          th:action="@{/tasks/{id}/reopen(id=${task.id})}"
+                          th:if="${task.state.name() == 'CLOSED'}">
+                        <button type="submit">Reopen task</button>
+                    </form>
+
+                    <form method="post"
+                          th:action="@{/tasks/{id}/delete(id=${task.id})}"
+                          onsubmit="return confirm('Delete this task? This cannot be undone.');">
+                        <button type="submit">Delete</button>
+                    </form>
+                </div>
+            </details>
+        </li>
+    </ul>
+
+    <div th:if="${tasks.isEmpty()}">
+        <div>No tasks yet</div>
+        <div>Add your first task using the field above.</div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Log in · Task App</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+    <div>
+        <span>Task App</span>
+    </div>
+
+    <div th:if="${successMessage}"
+         th:text="${successMessage}"></div>
+
+    <form method="post" action="/login" novalidate>
+        <label>
+            <span>Username</span>
+            <input class="input"
+                   type="text"
+                   name="username"
+                   autocomplete="username"
+                   placeholder="Enter your username"
+                   th:value="${username != null ? username : registeredUsername}"
+                   th:classappend="${loginError != null} ? 'input-error' : ''">
+        </label>
+
+        <label>
+            <span>Password</span>
+            <input class="input"
+                   type="password"
+                   name="password"
+                   autocomplete="current-password"
+                   placeholder="Enter your password"
+                   th:classappend="${loginError != null} ? 'input-error' : ''">
+        </label>
+
+        <p th:if="${loginError}" th:text="${loginError}"></p>
+
+        <button type="submit">Log in</button>
+    </form>
+
+    <p>
+        Don't have an account? <a th:href="@{/register}">Create one</a>
+    </p>
+</body>
+</html>

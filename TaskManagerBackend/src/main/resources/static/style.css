@@ -1,0 +1,9 @@
+.input {
+    border-style: solid;
+    border-radius: 3px;
+    border-width: 3px;
+}
+
+.input-error {
+    border-color: red;
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Create account · Task App</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+    <div>
+        <span>Task App</span>
+    </div>
+
+    <h1>Create your account</h1>
+
+    <form method="post" action="/register" id="registerForm" novalidate>
+        <label>
+            <span>Username</span>
+            <input class="input"
+                   type="text"
+                   name="username"
+                   autocomplete="username"
+                   placeholder="Choose a username"
+                   th:value="${username}"
+                   th:classappend="${usernameError != null} ? 'input-error' : ''">
+            <span th:if="${usernameError}" th:text="${usernameError}"></span>
+        </label>
+
+        <label>
+            <span>Password</span>
+            <input class="input"
+                   type="password"
+                   name="password"
+                   autocomplete="new-password"
+                   placeholder="Create a password"
+                   th:classappend="${passwordError != null} ? 'input-error' : ''">
+            <span th:if="${passwordError}" th:text="${passwordError}"></span>
+        </label>
+
+        <label>
+            <span>Confirm password</span>
+            <input class="input"
+                   type="password"
+                   name="passwordConfirm"
+                   autocomplete="new-password"
+                   placeholder="Repeat your password"
+                   th:classappend="${passwordConfirmError != null} ? 'input-error' : ''">
+            <span id="clientPasswordError"
+                  hidden></span>
+            <span th:if="${passwordConfirmError}"
+                  th:text="${passwordConfirmError}"></span>
+        </label>
+
+        <button type="submit">Create account</button>
+    </form>
+
+    <p>
+        Already have an account? <a th:href="@{/login}">Log in</a>
+    </p>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('registerForm');
+        const password = form.querySelector('input[name="password"]');
+        const confirm = form.querySelector('input[name="passwordConfirm"]');
+        const clientError = document.getElementById('clientPasswordError');
+
+        form.addEventListener('submit', function (e) {
+            if (password.value !== confirm.value) {
+                e.preventDefault();
+                confirm.classList.add('input-error');
+                clientError.textContent = 'Passwords do not match.';
+                clientError.hidden = false;
+                confirm.focus();
+            }
+        });
+
+        confirm.addEventListener('input', function () {
+            if (!clientError.hidden) {
+                confirm.classList.remove('input-error');
+                clientError.hidden = true;
+                clientError.textContent = '';
+            }
+        });
+    });
+</script>
+</body>
+</html>
