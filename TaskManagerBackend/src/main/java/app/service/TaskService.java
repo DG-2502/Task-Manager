@@ -5,18 +5,21 @@ import app.exception.AccessDeniedException;
 import app.exception.TaskNotFoundException;
 import app.exception.UserNotFoundException;
 import app.repo.TaskRepository;
+import app.repo.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import app.repo.UserRepo;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Service
 public class TaskService {
     private final TaskRepository taskRepo;
-    private final UserRepo userRepo;
+    private final UserRepository userRepo;
 
-    public TaskService(TaskRepository taskRepo, UserRepo userRepo) {
+    public TaskService(TaskRepository taskRepo, UserRepository userRepo) {
         this.taskRepo = taskRepo;
         this.userRepo = userRepo;
     }
@@ -25,7 +28,7 @@ public class TaskService {
         if (!requester.isAdmin() && userId != requester.getId()) {
             throw new AccessDeniedException("Only admins can create tasks for another user");
         }
-        User user = userRepo.getById(userId);
+        User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         Task task = new Task(title, LocalDate.now(), Task.State.ACTIVE, user.getId());
         return taskRepo.save(task);
@@ -76,15 +79,23 @@ public class TaskService {
         ALL, ACTIVE, CLOSED
     }
 
-    public List<Task> getTasks(User requester, TaskFilter filter, int userID) throws AccessDeniedException {
+    public Page<Task> getTasks(User requester, TaskFilter filter, int userID, int page, int size) throws AccessDeniedException {
         if (!requester.isAdmin() && userID != requester.getId()) {
             throw new AccessDeniedException("Only admins can get others' tasks");
         }
 
+        if (size <= 0) {
+            size = 10;
+        } else if (size > 100) {
+            size = 100;
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+
         return switch (filter) {
-            case ALL -> taskRepo.findByCreatorId(userID);
-            case ACTIVE -> taskRepo.findByCreatorIdAndState(userID, Task.State.ACTIVE);
-            case CLOSED -> taskRepo.findByCreatorIdAndState(userID, Task.State.CLOSED);
+            case ALL -> taskRepo.findByCreatorId(userID, pageable);
+            case ACTIVE -> taskRepo.findByCreatorIdAndState(userID, Task.State.ACTIVE, pageable);
+            case CLOSED -> taskRepo.findByCreatorIdAndState(userID, Task.State.CLOSED, pageable);
         };
     }
 
@@ -96,7 +107,7 @@ public class TaskService {
         taskRepo.deleteByCreatorId(id);
     }
 
-    public Task getById(int id, User requester) throws TaskNotFoundException{
+    public Task getById(int id, User requester) throws TaskNotFoundException {
         Task task = taskRepo.findById(id).orElseThrow(() -> new TaskNotFoundException(id));
 
         if (!requester.isAdmin() && task.getCreatorId() != requester.getId()) {

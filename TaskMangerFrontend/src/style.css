@@ -204,3 +204,93 @@ a {
     opacity: 0.55;
     font-style: italic;
 }
+
+.create-form {
+    display: flex;
+    gap: 0.5rem;
+    width: 70%;
+    margin-bottom: 0.5rem;
+}
+
+.create-task {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 2px solid #87b6df;
+    font-size: large;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 70%;
+    margin-bottom: 1rem;
+}
+
+.filter-group {
+    display: flex;
+    gap: 0.2rem;
+}
+
+.filter-button {
+    padding: 0.4rem 0.9rem;
+    font-size: medium;
+    background: #cfd8f0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #132970;
+}
+
+.filter-button.active {
+    background: #4263c8;
+    color: white;
+}
+
+.size-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #132970;
+    font-size: medium;
+}
+
+.size-selector select {
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #87b6df;
+    font-size: medium;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0 0;
+    color: #132970;
+    font-size: medium;
+}
+
+.pagination button {
+    padding: 0.4rem 1rem;
+    background: #4263c8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    background: #a0aec0;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: medium;
+}
+
+.total-info {
+    color: #718096;
+    font-size: small;
+}

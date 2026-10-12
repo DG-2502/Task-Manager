@@ -4,11 +4,13 @@ import app.domain.Task;
 import app.domain.User;
 import app.service.TaskService;
 import app.web.RequestContext;
+import app.web.dto.PageResponse;
+import app.web.dto.TaskResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,13 +22,18 @@ public class TaskApiController {
         this.taskService = taskService;
     }
 
-    @GetMapping("/")
-    public List<Task> myTasks(HttpServletRequest request) {
+    @GetMapping("")
+    public PageResponse<TaskResponse> myTasks(@RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size,
+                                              @RequestParam(defaultValue = "ALL") String filter,
+                                              HttpServletRequest request) {
         User me = RequestContext.currentUser(request);
-        return taskService.getTasks(me, TaskService.TaskFilter.ALL, me.getId());
+        TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
+        Page<Task> taskPage = taskService.getTasks(me, taskFilter, me.getId(), page, size);
+        return PageResponse.from(taskPage, TaskResponse::from);
     }
 
-    @PostMapping("/")
+    @PostMapping("")
     public Task createTask(HttpServletRequest req, @RequestBody Map<String, String> body) {
         User me = RequestContext.currentUser(req);
         return taskService.createTask(me, me.getId(), body.get("title"));

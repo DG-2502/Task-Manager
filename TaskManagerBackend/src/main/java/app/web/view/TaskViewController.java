@@ -4,12 +4,13 @@ import app.domain.Task;
 import app.domain.User;
 import app.service.TaskService;
 import app.web.RequestContext;
+import app.web.dto.PageResponse;
+import app.web.dto.TaskResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Controller
 public class TaskViewController {
@@ -20,10 +21,15 @@ public class TaskViewController {
     }
 
     @GetMapping("/tasks")
-    public String taskList(HttpServletRequest req, Model model) {
+    public String taskList(@RequestParam(defaultValue = "0") int page,
+                           @RequestParam(defaultValue = "10") int size,
+                           @RequestParam(defaultValue = "ALL") String filter,
+                           HttpServletRequest req, Model model) {
         User me = RequestContext.currentUser(req);
-        List<Task> tasks = taskService.getTasks(me, TaskService.TaskFilter.ALL, me.getId());
-        model.addAttribute("tasks", tasks);
+        TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
+        Page<Task> taskPage = taskService.getTasks(me, taskFilter, me.getId(), page, size);
+        PageResponse<TaskResponse> pageResponse = PageResponse.from(taskPage, TaskResponse::from);
+        model.addAttribute("tasksPage", pageResponse);
         model.addAttribute("username", me.getUsername());
         return "tasks";
     }
