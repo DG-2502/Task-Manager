@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("api/tasks")
+@RequestMapping("/api/tasks")
 public class TaskApiController {
     private final TaskService taskService;
 
@@ -34,9 +34,10 @@ public class TaskApiController {
     }
 
     @PostMapping("")
-    public Task createTask(HttpServletRequest req, @RequestBody Map<String, String> body) {
+    public TaskResponse createTask(HttpServletRequest req, @RequestBody Map<String, String> body) {
         User me = RequestContext.currentUser(req);
-        return taskService.createTask(me, me.getId(), body.get("title"));
+        Task task = taskService.createTask(me, me.getId(), body.get("title"));
+        return TaskResponse.from(task);
     }
 
     @PostMapping("/{id}/close")

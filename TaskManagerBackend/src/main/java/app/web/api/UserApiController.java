@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("api/users")
+@RequestMapping("/api/users")
 public class UserApiController {
     private final UserService userService;
 
@@ -36,8 +36,10 @@ public class UserApiController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
-        if (!body.get("password").equals(body.get("passwordConfirm"))) {
-            throw new ValidationException("Passwords do not match");
+        String password = body.get("password");
+        String passwordConfirm = body.get("passwordConfirm");
+        if (password == null || !password.equals(passwordConfirm)) {
+            throw new ValidationException("passwordConfirm", "Passwords do not match");
         }
 
         userService.register(

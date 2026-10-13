@@ -3,14 +3,11 @@ import {AuthProvider} from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import TasksPage from './pages/TasksPage';
-import {useEffect} from "react";
-import RegisterPage from "./pages/RegisterPage.jsx";
+import RegisterPage from './pages/RegisterPage.jsx';
+import AdminRoute from "./auth/AdminRoute.jsx";
+import AdminPage from './pages/AdminPage.jsx'
 
 export default function App() {
-    console.log("App method is being run");
-    useEffect(() => {
-        console.log("Effects on App are being run");
-    })
     return (
         <AuthProvider>
             <BrowserRouter>
@@ -26,6 +23,15 @@ export default function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route
+                        path="/admin"
+                        element={
+                            <AdminRoute>
+                                <AdminPage/>
+                            </AdminRoute>
+                        }
+                    />
+                    <Route path="*" element={<Navigate to="/tasks"/>}/>
                 </Routes>
             </BrowserRouter>
         </AuthProvider>

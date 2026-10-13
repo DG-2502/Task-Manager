@@ -1,11 +1,7 @@
 package app.exception;
 
 public class ValidationException extends RuntimeException {
-    private String field;
-
-    public ValidationException(String message) {
-        super(message);
-    }
+    private final String field;
 
     public ValidationException(String field, String message) {
         super(message);

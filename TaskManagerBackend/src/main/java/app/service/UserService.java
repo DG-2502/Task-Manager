@@ -7,9 +7,12 @@ import app.exception.UserNotFoundException;
 import app.exception.ValidationException;
 import app.exception.*;
 import app.repo.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -101,7 +104,7 @@ public class UserService {
         if (newUsername != null && !newUsername.isBlank()) {
             Optional<User> optionalUser = userRepo.getByUsername(newUsername);
             if (optionalUser.isPresent() && optionalUser.get().getId() != userId) {
-                throw new ValidationException("Username: " + newUsername + " is already taken");
+                throw new ValidationException("username", "Username: " + newUsername + " is already taken");
             }
         }
 
@@ -129,11 +132,28 @@ public class UserService {
         userRepo.save(user);
     }
 
-    public List<User> getUsers(User requester) {
+    public enum UserFilter {
+        ALL, USERS, ADMINS
+    }
+
+    public Page<User> getUsers(User requester, UserFilter filter, int page, int size) {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");
         }
-        return userRepo.findAll();
+
+        if (size <= 0) {
+            size = 10;
+        } else if (size > 100) {
+            size = 100;
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+
+        return switch (filter) {
+            case ALL -> userRepo.findAll(pageable);
+            case USERS -> userRepo.findByStatus(User.Status.USER, pageable);
+            case ADMINS -> userRepo.findByStatus(User.Status.ADMIN, pageable);
+        };
     }
 
     public void deleteUserById(int id, User requester) throws AccessDeniedException {

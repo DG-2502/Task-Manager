@@ -1,20 +1,20 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { apiFetch } from '../api/client';
+import {createContext, useContext, useEffect, useState} from 'react';
+import {apiFetch} from '../api/client';
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-    console.log("Auth provider method is called");
+export function AuthProvider({children}) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        console.log("Effects on AuthProvider are being run");
         apiFetch('/api/users/me')
             .then(setUser)
             .catch(() => setUser(null))
-            .finally(() => {setLoading(false); console.log("Effects on AuthProvider finished");});
-    }, []);
+            .finally(() => {
+                setLoading(false);
+            });
+    });
 
     const value = {
         user,
@@ -22,7 +22,6 @@ export function AuthProvider({ children }) {
         setUser,
         clearUser: () => setUser(null),
     };
-    console.log("Auth provider method is returning the AuthContext.provider");
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

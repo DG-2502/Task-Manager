@@ -1,36 +1,32 @@
-import { apiFetch } from "../api/client.js";
-import {useState} from "react";
-import {useNavigate, Link} from "react-router-dom";
+import {useState} from 'react';
+import {useLocation, useNavigate, Link} from 'react-router-dom';
+import {apiFetch} from '../api/client';
+import {useAuth} from '../auth/AuthContext';
 
-export default function RegisterPage() {
-    const [username, setUsername] = useState('');
+export default function LoginPage() {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const {setUser} = useAuth();
+
+    const prefillUsername = location.state?.registeredUsername ?? '';
+    const successMessage = location.state?.successMessage ?? null;
+
+    const [username, setUsername] = useState(prefillUsername);
     const [password, setPassword] = useState('');
-    const [passwordConfirm, setPasswordConfirm] = useState('');
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError(null);
-
-        if (password !== passwordConfirm) {
-            setError("Passwords are different!");
-            return;
-        }
-
         setLoading(true);
         try {
-            await apiFetch('/api/users/register', {
+            const user = await apiFetch('/api/users/login', {
                 method: 'POST',
-                body: JSON.stringify({username, password, passwordConfirm}),
+                body: JSON.stringify({username, password}),
             });
-            navigate('/login', {
-                state: {
-                    registeredUsername: username,
-                    successMessage: "Account created successfully. Please log in.",
-                }
-            });
+            setUser(user);
+            navigate('/tasks');
         } catch (err) {
             setError(err.message || 'Login failed');
         } finally {
@@ -40,7 +36,10 @@ export default function RegisterPage() {
 
     return (
         <div className="card">
-            <h1>Register</h1>
+            <h1>Welcome back</h1>
+            {successMessage && (
+                <div className="success-banner">{successMessage}</div>
+            )}
             <form onSubmit={handleSubmit}>
                 <div className="inputs">
                     <input className="input"
@@ -56,29 +55,19 @@ export default function RegisterPage() {
                     <input className="input"
                            type="password"
                            name="password"
-                           autoComplete="new-password"
+                           autoComplete="current-password"
                            placeholder="Enter your password"
                            value={password}
                            onChange={e => setPassword(e.target.value)}
                            required
                     />
-
-                    <input className="input"
-                           type="password"
-                           name="passwordConfirm"
-                           autoComplete="new-password"
-                           placeholder="Repeat your password"
-                           value={passwordConfirm}
-                           onChange={e => setPasswordConfirm(e.target.value)}
-                           required
-                    />
                 </div>
                 {error && <p className="field-error">{error}</p>}
                 <button type="submit" disabled={loading}>
-                    {loading ? 'Registering…' : 'Register'}
+                    {loading ? 'Logging in…' : 'Log in'}
                 </button>
             </form>
-            <p><i>Already have an account?</i> <Link to="/login">Log in</Link></p>
+            <p><i>Don't have an account?</i> <Link to="/register">Create one</Link></p>
         </div>
     );
 }

@@ -8,7 +8,7 @@ import org.springframework.core.env.Environment;
 
 @SpringBootApplication
 public class Main {
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(Main.class, args);
     }
 
