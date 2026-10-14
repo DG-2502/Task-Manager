@@ -300,3 +300,34 @@ a {
     color: #718096;
     font-size: small;
 }
+
+.search-form {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 70%;
+    margin-bottom: 0.75rem;
+}
+
+.search-form input {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 2px solid #87b6df;
+    font-size: medium;
+}
+
+.search-form button {
+    padding: 0.4rem 0.9rem;
+    font-size: medium;
+    background: #cfd8f0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #132970;
+}
+
+.search-form button[type="submit"] {
+    background: #4263c8;
+    color: white;
+}

@@ -4,14 +4,20 @@ import usePagedResource from '../hooks/usePagedResource';
 
 export default function UserList({onSelect, selectedId}) {
     const [mutationError, setMutationError] = useState(null);
-    const buildUrl = useCallback(({page, size, filter}) =>
-        `/api/admin/users?page=${page}&size=${size}&filter=${filter}`, []);
+    const buildUrl = useCallback(({page, size, filter, search}) => {
+        const base = '/api/admin/users';
+        const params = new URLSearchParams({page, size, filter});
+        if (search) params.set('search', search);
+        return `${base}?${params}`;
+    }, []);
 
     const {
         content: users, fetchError,
         page, size, filter,
         setPage, setSize, setFilter,
         totalPages, totalElements, first, last,
+        search, setSearch,
+        applySearch, clearSearch,
         reload,
     } = usePagedResource(buildUrl);
 
@@ -26,6 +32,11 @@ export default function UserList({onSelect, selectedId}) {
         } catch (err) {
             setMutationError(err.message);
         }
+    }
+
+    function handleSearchSubmit(e) {
+        e.preventDefault();
+        applySearch();
     }
 
     return (
@@ -71,6 +82,19 @@ export default function UserList({onSelect, selectedId}) {
                     </select>
                 </label>
             </div>
+
+            <form onSubmit={handleSearchSubmit} className="search-form">
+                <input
+                    type="text"
+                    placeholder="Search by username..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                {/*<button type="submit">Search</button>*/}
+                {search && (
+                    <button type="button" onClick={clearSearch}>Clear</button>
+                )}
+            </form>
 
             {users.length === 0
                 ? <p className="empty">No users.</p>

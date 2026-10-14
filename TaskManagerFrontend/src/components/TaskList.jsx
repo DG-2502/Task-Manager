@@ -6,11 +6,11 @@ export default function TaskList({userId, isAdmin = false}) {
     const [title, setTitle] = useState('');
     const [mutationError, setMutationError] = useState(null);
 
-    const buildUrl = useCallback(({page, size, filter}) => {
-        const base = isAdmin
-            ? `/api/admin/users/${userId}/tasks`
-            : `/api/tasks`;
-        return `${base}?page=${page}&size=${size}&filter=${filter}`;
+    const buildUrl = useCallback(({page, size, filter, search}) => {
+        const base = isAdmin ? `/api/admin/users/${userId}/tasks` : `/api/tasks`;
+        const params = new URLSearchParams({ page, size, filter });
+        if (search) params.set('search', search);
+        return `${base}?${params}`;
     }, [userId, isAdmin]);
 
     const {
@@ -18,6 +18,8 @@ export default function TaskList({userId, isAdmin = false}) {
         page, size, filter,
         setPage, setSize, setFilter,
         totalPages, totalElements, first, last,
+        search, setSearch,
+        applySearch, clearSearch,
         reload,
     } = usePagedResource(buildUrl);
 
@@ -73,6 +75,11 @@ export default function TaskList({userId, isAdmin = false}) {
         }
     }
 
+    function handleSearchSubmit(e) {
+        e.preventDefault();
+        applySearch();
+    }
+
     return (
         <>
             {fetchError && <p className="field-error">{fetchError}</p>}
@@ -122,6 +129,19 @@ export default function TaskList({userId, isAdmin = false}) {
                     </select>
                 </label>
             </div>
+
+            <form onSubmit={handleSearchSubmit} className="search-form">
+                <input
+                    type="text"
+                    placeholder="Search by title..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                {/*<button type="submit">Search</button>*/}
+                {search && (
+                    <button type="button" onClick={clearSearch}>Clear</button>
+                )}
+            </form>
 
             {tasks.length === 0
                 ? <p className="empty">No tasks yet.</p>

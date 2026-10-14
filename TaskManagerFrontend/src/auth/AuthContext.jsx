@@ -14,7 +14,7 @@ export function AuthProvider({children}) {
             .finally(() => {
                 setLoading(false);
             });
-    });
+    }, []);
 
     const value = {
         user,

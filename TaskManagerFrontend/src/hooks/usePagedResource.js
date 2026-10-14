@@ -12,11 +12,13 @@ export default function usePagedResource(buildUrl) {
         first: true,
         last: true,
     });
+    const [search, setSearch] = useState('');
+    const [appliedSearch, setAppliedSearch] = useState('');
     const [fetchError, setFetchError] = useState(null);
     const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
-        apiFetch(buildUrl({page, size, filter}))
+        apiFetch(buildUrl({page, size, filter, search: appliedSearch}))
             .then(data => {
                 setContent(data.content);
                 setMeta({
@@ -28,13 +30,26 @@ export default function usePagedResource(buildUrl) {
                 setFetchError(null);
             })
             .catch(err => setFetchError(err.message));
-    }, [page, size, filter, reloadKey, buildUrl]);
+    }, [page, size, filter, reloadKey, buildUrl, appliedSearch]);
+
+    function applySearch() {
+        setAppliedSearch(search);
+        setPage(0);
+    }
+
+    function clearSearch() {
+        setSearch('');
+        setAppliedSearch('');
+        setPage(0);
+    }
 
     return {
         content,
         fetchError,
         page, size, filter,
         setPage, setSize, setFilter,
+        search, setSearch,
+        applySearch, clearSearch,
         ...meta,
         reload: () => setReloadKey(k => k + 1),
     };
