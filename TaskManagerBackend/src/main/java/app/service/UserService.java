@@ -7,10 +7,12 @@ import app.exception.UserNotFoundException;
 import app.exception.ValidationException;
 import app.exception.*;
 import app.repo.UserRepository;
+import app.repo.UserSpecifications;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -136,7 +138,7 @@ public class UserService {
         ALL, USERS, ADMINS
     }
 
-    public Page<User> getUsers(User requester, UserFilter filter, int page, int size) {
+    public Page<User> getUsers(User requester, UserFilter filter, int page, int size, String search) {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");
         }
@@ -149,11 +151,12 @@ public class UserService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
-        return switch (filter) {
-            case ALL -> userRepo.findAll(pageable);
-            case USERS -> userRepo.findByStatus(User.Status.USER, pageable);
-            case ADMINS -> userRepo.findByStatus(User.Status.ADMIN, pageable);
-        };
+        Specification<User> spec = Specification.unrestricted();
+        if (filter == UserFilter.USERS) spec = spec.and(UserSpecifications.byStatus(User.Status.USER));
+        if (filter == UserFilter.ADMINS) spec = spec.and(UserSpecifications.byStatus(User.Status.ADMIN));
+        if (search != null && !search.isBlank()) spec = spec.and(UserSpecifications.usernameContains(search));
+
+        return userRepo.findAll(spec, pageable);
     }
 
     public void deleteUserById(int id, User requester) throws AccessDeniedException {

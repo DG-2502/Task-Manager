@@ -30,10 +30,11 @@ public class AdminApiController {
     public PageResponse<UserResponse> getUsers(@RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "10") int size,
                                                @RequestParam(defaultValue = "ALL") String filter,
+                                               @RequestParam(required = false) String search,
                                                HttpServletRequest req) {
         User adm = RequestContext.currentUser(req);
         UserService.UserFilter userFilter = UserService.UserFilter.valueOf(filter.toUpperCase());
-        Page<User> users = userService.getUsers(adm, userFilter, page, size);
+        Page<User> users = userService.getUsers(adm, userFilter, page, size, search);
         return PageResponse.from(users, UserResponse::from);
     }
 
@@ -42,10 +43,11 @@ public class AdminApiController {
                                                @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "10") int size,
                                                @RequestParam(defaultValue = "ALL") String filter,
+                                               @RequestParam(required = false) String search,
                                                HttpServletRequest request) {
         User adm = RequestContext.currentUser(request);
         TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
-        Page<Task> taskPage = taskService.getTasks(adm, taskFilter, id, page, size);
+        Page<Task> taskPage = taskService.getTasks(adm, taskFilter, id, page, size, search);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 

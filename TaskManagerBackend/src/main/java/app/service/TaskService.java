@@ -5,11 +5,13 @@ import app.exception.AccessDeniedException;
 import app.exception.TaskNotFoundException;
 import app.exception.UserNotFoundException;
 import app.repo.TaskRepository;
+import app.repo.TaskSpecifications;
 import app.repo.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -79,7 +81,7 @@ public class TaskService {
         ALL, ACTIVE, CLOSED
     }
 
-    public Page<Task> getTasks(User requester, TaskFilter filter, int userID, int page, int size) throws AccessDeniedException {
+    public Page<Task> getTasks(User requester, TaskFilter filter, int userID, int page, int size, String search) throws AccessDeniedException {
         if (!requester.isAdmin() && userID != requester.getId()) {
             throw new AccessDeniedException("Only admins can get others' tasks");
         }
@@ -92,11 +94,12 @@ public class TaskService {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
-        return switch (filter) {
-            case ALL -> taskRepo.findByCreatorId(userID, pageable);
-            case ACTIVE -> taskRepo.findByCreatorIdAndState(userID, Task.State.ACTIVE, pageable);
-            case CLOSED -> taskRepo.findByCreatorIdAndState(userID, Task.State.CLOSED, pageable);
-        };
+        Specification<Task> spec = Specification.where(TaskSpecifications.byCreatorId(userID));
+        if (filter == TaskFilter.ACTIVE) spec = spec.and(TaskSpecifications.byState(Task.State.ACTIVE));
+        if (filter == TaskFilter.CLOSED) spec = spec.and(TaskSpecifications.byState(Task.State.CLOSED));
+        if (search != null && !search.isBlank()) spec = spec.and(TaskSpecifications.titleContains(search));
+
+        return taskRepo.findAll(spec, pageable);
     }
 
     public void deleteTasksByUserId(int id, User requester) throws AccessDeniedException {

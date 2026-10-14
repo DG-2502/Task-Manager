@@ -26,10 +26,11 @@ public class TaskApiController {
     public PageResponse<TaskResponse> myTasks(@RequestParam(defaultValue = "0") int page,
                                               @RequestParam(defaultValue = "10") int size,
                                               @RequestParam(defaultValue = "ALL") String filter,
+                                              @RequestParam(required = false) String search,
                                               HttpServletRequest request) {
         User me = RequestContext.currentUser(request);
         TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
-        Page<Task> taskPage = taskService.getTasks(me, taskFilter, me.getId(), page, size);
+        Page<Task> taskPage = taskService.getTasks(me, taskFilter, me.getId(), page, size, search);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
