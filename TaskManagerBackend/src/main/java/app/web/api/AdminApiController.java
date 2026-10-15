@@ -32,9 +32,9 @@ public class AdminApiController {
                                                @RequestParam(defaultValue = "ALL") String filter,
                                                @RequestParam(required = false) String search,
                                                HttpServletRequest req) {
-        User adm = RequestContext.currentUser(req);
+        User admin = RequestContext.currentUser(req);
         UserService.UserFilter userFilter = UserService.UserFilter.valueOf(filter.toUpperCase());
-        Page<User> users = userService.getUsers(adm, userFilter, page, size, search);
+        Page<User> users = userService.getUsers(admin, userFilter, page, size, search);
         return PageResponse.from(users, UserResponse::from);
     }
 
@@ -45,23 +45,23 @@ public class AdminApiController {
                                                @RequestParam(defaultValue = "ALL") String filter,
                                                @RequestParam(required = false) String search,
                                                HttpServletRequest request) {
-        User adm = RequestContext.currentUser(request);
+        User admin = RequestContext.currentUser(request);
         TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
-        Page<Task> taskPage = taskService.getTasks(adm, taskFilter, id, page, size, search);
+        Page<Task> taskPage = taskService.getTasks(admin, taskFilter, id, page, size, search);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable int id, HttpServletRequest req) {
-        User adm = RequestContext.currentUser(req);
-        userService.deleteUserById(id, adm);
+        User admin = RequestContext.currentUser(req);
+        userService.deleteUserById(id, admin);
         return ResponseEntity.ok("Deleted user with id: " + id);
     }
 
     @PostMapping("/users/{userId}/tasks")
     public TaskResponse createTask(@PathVariable int userId, HttpServletRequest req, @RequestBody Map<String, String> body) {
-        User me = RequestContext.currentUser(req);
-        Task task = taskService.createTask(me, userId, body.get("title"));
+        User admin = RequestContext.currentUser(req);
+        Task task = taskService.createTask(admin, userId, body.get("title"));
         return TaskResponse.from(task);
     }
 }
