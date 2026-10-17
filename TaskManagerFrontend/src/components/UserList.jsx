@@ -4,6 +4,13 @@ import usePagedResource from '../hooks/usePagedResource';
 
 export default function UserList({onSelect, selectedId}) {
     const [mutationError, setMutationError] = useState(null);
+    const [error, setError] = useState(null);
+    const [errorField, setErrorField] = useState(null);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [status, setStatus] = useState('USER');
+    const [isFormOpen, setIsFormOpen] = useState(false);
+
     const buildUrl = useCallback(({page, size, filter, search}) => {
         const base = '/api/admin/users';
         const params = new URLSearchParams({page, size, filter});
@@ -28,9 +35,29 @@ export default function UserList({onSelect, selectedId}) {
             if (id === selectedId) {
                 onSelect(null);
             }
+            if (totalElements % size === 1 && !first) {
+                setPage(page - 1);
+            }
             reload();
         } catch (err) {
             setMutationError(err.message);
+        }
+    }
+
+    async function handleCreate(e) {
+        e.preventDefault()
+        setError(null)
+        setErrorField(null);
+        try {
+            await apiFetch('/api/admin/users', {method: 'POST', body: JSON.stringify({username, password, status})})
+            setUsername('');
+            setPassword('');
+            setStatus('USER');
+            setIsFormOpen(false);
+            reload();
+        } catch (err) {
+            setError(err.message)
+            setErrorField(err.value);
         }
     }
 
@@ -43,6 +70,54 @@ export default function UserList({onSelect, selectedId}) {
         <>
             {fetchError && <p className="field-error">{fetchError}</p>}
             {mutationError && <p className="field-error">{mutationError}</p>}
+
+            <div className="create-user-section">
+                <button
+                    type="button"
+                    className="toggle-form-button"
+                    onClick={() => setIsFormOpen(!isFormOpen)}
+                >
+                    {isFormOpen ? '✕ Cancel' : '+ Create a new user'}
+                </button>
+
+                {isFormOpen && (
+                    <form onSubmit={handleCreate} className="create-user-form">
+                        <div className="form-row">
+                            <input className={`input ${errorField === 'username' ? 'input-error' : ''}`}
+                                   type="text"
+                                   placeholder="Username"
+                                   value={username}
+                                   onChange={e => setUsername(e.target.value)}
+                                   required
+                            />
+                            <input className={`input ${errorField === 'password' ? 'input-error' : ''}`}
+                                   type="password"
+                                   placeholder="Password"
+                                   value={password}
+                                   onChange={e => setPassword(e.target.value)}
+                                   required
+                            />
+                        </div>
+
+                        <div className="form-row align-center">
+                            <span className="form-label">Role:</span>
+                            <div className="filter-group">
+                                {['USER', 'ADMIN'].map(f => (
+                                    <button key={f}
+                                            type="button"
+                                            className={`filter-button ${status === f ? 'active' : ''}`}
+                                            onClick={() => setStatus(f)}>
+                                        {f.charAt(0) + f.slice(1).toLowerCase()}
+                                    </button>
+                                ))}
+                            </div>
+                            <button type="submit" className="submit-button">Create User</button>
+                        </div>
+
+                        {errorField && <p className="field-error">{errorField}</p>}
+                    </form>
+                )}
+            </div>
 
             <div className="controls">
                 <div className="filter-group">
@@ -90,7 +165,6 @@ export default function UserList({onSelect, selectedId}) {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
-                {/*<button type="submit">Search</button>*/}
                 {search && (
                     <button type="button" onClick={clearSearch}>Clear</button>
                 )}

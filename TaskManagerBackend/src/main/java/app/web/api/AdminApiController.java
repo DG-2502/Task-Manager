@@ -64,4 +64,15 @@ public class AdminApiController {
         Task task = taskService.createTask(admin, userId, body.get("title"));
         return TaskResponse.from(task);
     }
+
+    @PostMapping("/users")
+    public ResponseEntity<?> createUser(HttpServletRequest req, @RequestBody Map<String, String> body) {
+        User admin = RequestContext.currentUser(req);
+        String username = body.get("username");
+        String password = body.get("password");
+        User.Status status = User.Status.valueOf(body.get("status").toUpperCase());
+
+        userService.createNewUser(admin, username, password, status);
+        return ResponseEntity.ok("Created new user");
+    }
 }

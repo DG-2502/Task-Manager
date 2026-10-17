@@ -51,7 +51,7 @@ public class UserService {
         userRepo.save(user);
     }
 
-    public void createNewUser(User requester, String username, String password, User.Status status) throws AccessDeniedException {
+    public void createNewUser(User requester, String username, String password, User.Status status) throws AccessDeniedException, ValidationException {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can create new users");
         }

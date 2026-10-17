@@ -61,4 +61,14 @@ public class TaskApiController {
         taskService.deleteTask(me, id);
         return ResponseEntity.ok("Deleted task with id: " + id);
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updateTask(@PathVariable int id, HttpServletRequest req, @RequestBody Map<String, String> body) {
+        User me = RequestContext.currentUser(req);
+        String title = body.get("title");
+        String stateSting = body.get("state");
+        Task.State state = stateSting != null ? Task.State.valueOf(stateSting.toUpperCase()) : null;
+        taskService.updateTask(me, id, title, state);
+        return ResponseEntity.ok("Updated task with id: " + id);
+    }
 }

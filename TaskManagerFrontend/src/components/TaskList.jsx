@@ -56,6 +56,9 @@ export default function TaskList({userId, isAdmin = false}) {
         setMutationError(null)
         try {
             await apiFetch(`/api/tasks/${id}`, {method: 'DELETE'});
+            if (totalElements % size === 1 && !first) {
+                setPage(page - 1);
+            }
             reload();
         } catch (err) {
             setMutationError(err.message);
