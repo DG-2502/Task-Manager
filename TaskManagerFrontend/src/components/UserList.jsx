@@ -10,12 +10,12 @@ export default function UserList({onSelect, selectedId}) {
     const [password, setPassword] = useState('');
     const [status, setStatus] = useState('USER');
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [creating, setCreating] = useState(false);
 
     const buildUrl = useCallback(({page, size, filter, search}) => {
-        const base = '/api/admin/users';
         const params = new URLSearchParams({page, size, filter});
         if (search) params.set('search', search);
-        return `${base}?${params}`;
+        return `/api/admin/users?${params}`;
     }, []);
 
     const {
@@ -29,15 +29,11 @@ export default function UserList({onSelect, selectedId}) {
     } = usePagedResource(buildUrl);
 
     async function handleDelete(id) {
-        setMutationError(null)
+        setMutationError(null);
         try {
             await apiFetch(`/api/admin/users/${id}`, {method: 'DELETE'});
-            if (id === selectedId) {
-                onSelect(null);
-            }
-            if (totalElements % size === 1 && !first) {
-                setPage(page - 1);
-            }
+            if (id === selectedId) onSelect(null);
+            if (totalElements % size === 1 && !first) setPage(p => p - 1);
             reload();
         } catch (err) {
             setMutationError(err.message);
@@ -45,19 +41,24 @@ export default function UserList({onSelect, selectedId}) {
     }
 
     async function handleCreate(e) {
-        e.preventDefault()
-        setError(null)
+        e.preventDefault();
+        setCreating(true);
+        setError(null);
         setErrorField(null);
         try {
-            await apiFetch('/api/admin/users', {method: 'POST', body: JSON.stringify({username, password, status})})
+            await apiFetch('/api/admin/users', {
+                method: 'POST',
+                body: JSON.stringify({username, password, status}),
+            });
             setUsername('');
             setPassword('');
             setStatus('USER');
-            setIsFormOpen(false);
             reload();
         } catch (err) {
-            setError(err.message)
-            setErrorField(err.value);
+            setError(err.message);
+            setErrorField(err.field);
+        } finally {
+            setCreating(false);
         }
     }
 
@@ -75,59 +76,72 @@ export default function UserList({onSelect, selectedId}) {
                 <button
                     type="button"
                     className="toggle-form-button"
-                    onClick={() => setIsFormOpen(!isFormOpen)}
+                    onClick={() => setIsFormOpen(open => !open)}
                 >
                     {isFormOpen ? '✕ Cancel' : '+ Create a new user'}
                 </button>
 
                 {isFormOpen && (
-                    <form onSubmit={handleCreate} className="create-user-form">
-                        <div className="form-row">
-                            <input className={`input ${errorField === 'username' ? 'input-error' : ''}`}
-                                   type="text"
-                                   placeholder="Username"
-                                   value={username}
-                                   onChange={e => setUsername(e.target.value)}
-                                   required
-                            />
-                            <input className={`input ${errorField === 'password' ? 'input-error' : ''}`}
-                                   type="password"
-                                   placeholder="Password"
-                                   value={password}
-                                   onChange={e => setPassword(e.target.value)}
-                                   required
-                            />
-                        </div>
-
-                        <div className="form-row align-center">
-                            <span className="form-label">Role:</span>
-                            <div className="filter-group">
-                                {['USER', 'ADMIN'].map(f => (
-                                    <button key={f}
-                                            type="button"
-                                            className={`filter-button ${status === f ? 'active' : ''}`}
-                                            onClick={() => setStatus(f)}>
-                                        {f.charAt(0) + f.slice(1).toLowerCase()}
-                                    </button>
-                                ))}
+                    <div className="create-user-form">
+                        <form onSubmit={handleCreate}>
+                            <div className="inputs">
+                                <input
+                                    className={`input ${errorField === 'username' ? 'input-error' : ''}`}
+                                    type="text"
+                                    name="username"
+                                    placeholder="Username"
+                                    value={username}
+                                    onChange={e => setUsername(e.target.value)}
+                                    required
+                                />
+                                <input
+                                    className={`input ${errorField === 'password' ? 'input-error' : ''}`}
+                                    type="password"
+                                    name="password"
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    required
+                                />
                             </div>
-                            <button type="submit" className="submit-button">Create User</button>
-                        </div>
 
-                        {errorField && <p className="field-error">{errorField}</p>}
-                    </form>
+                            <div className="form-row align-center">
+                                <span className="form-label">Role:</span>
+                                <div className="filter-group">
+                                    {['USER', 'ADMIN'].map(role => (
+                                        <button
+                                            key={role}
+                                            type="button"
+                                            className={`filter-button ${status === role ? 'active' : ''}`}
+                                            onClick={() => setStatus(role)}
+                                        >
+                                            {role.charAt(0) + role.slice(1).toLowerCase()}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button type="submit" className="submit-button" disabled={creating}>
+                                    {creating ? 'Creating...' : 'Create user'}
+                                </button>
+                            </div>
+
+                            {error && <p className="field-error">{error}</p>}
+                        </form>
+                    </div>
                 )}
             </div>
 
             <div className="controls">
                 <div className="filter-group">
                     {['ALL', 'USERS', 'ADMINS'].map(f => (
-                        <button key={f}
-                                className={`filter-button ${filter === f ? 'active' : ''}`}
-                                onClick={() => {
-                                    setFilter(f);
-                                    setPage(0);
-                                }}>
+                        <button
+                            key={f}
+                            type="button"
+                            className={`filter-button ${filter === f ? 'active' : ''}`}
+                            onClick={() => {
+                                setFilter(f);
+                                setPage(0);
+                            }}
+                        >
                             {f.charAt(0) + f.slice(1).toLowerCase()}
                         </button>
                     ))}
@@ -135,25 +149,29 @@ export default function UserList({onSelect, selectedId}) {
 
                 {totalPages > 1 && (
                     <div className="pagination">
-                        <button onClick={() => setPage(p => p - 1)} disabled={first}>← Prev</button>
+                        <button type="button" onClick={() => setPage(p => p - 1)} disabled={first}>
+                            ← Prev
+                        </button>
                         <span className="page-info">
                             Page {page + 1} of {totalPages}
                             <span className="total-info"> ({totalElements} total)</span>
                         </span>
-                        <button onClick={() => setPage(p => p + 1)} disabled={last}>Next →</button>
+                        <button type="button" onClick={() => setPage(p => p + 1)} disabled={last}>
+                            Next →
+                        </button>
                     </div>
                 )}
 
                 <label className="size-selector">
                     Per page:
-                    <select value={size} onChange={e => {
-                        setSize(Number(e.target.value));
-                        setPage(0);
-                    }}>
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
+                    <select
+                        value={size}
+                        onChange={e => {
+                            setSize(Number(e.target.value));
+                            setPage(0);
+                        }}
+                    >
+                        {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                 </label>
             </div>
@@ -170,29 +188,36 @@ export default function UserList({onSelect, selectedId}) {
                 )}
             </form>
 
-            {users.length === 0
-                ? <p className="empty">No users.</p>
-                : <div className="tasks">
+            {users.length === 0 ? (
+                <p className="empty">No users.</p>
+            ) : (
+                <div className="list">
                     {users.map(u => (
-                        <div key={u.id}
-                             className={`task ${selectedId === u.id ? 'selected' : ''}`}
-                             onClick={() => onSelect(u)}>
-                            <div className="task-info">
-                                <div className="task-title">{u.username}</div>
-                                <div className="task-meta">{u.id} — {u.status}</div>
+                        <div
+                            key={u.id}
+                            className={`list-item clickable ${selectedId === u.id ? 'selected' : ''}`}
+                            onClick={() => onSelect(u)}
+                        >
+                            <div className="list-item-info">
+                                <div className="list-item-title">{u.username}</div>
+                                <div className="list-item-meta">{u.id} — {u.status}</div>
                             </div>
-                            <div className="task-actions">
-                                <button className="action-button danger"
-                                        onClick={e => {
-                                            e.stopPropagation();
-                                            handleDelete(u.id);
-                                        }}>
+                            <div className="list-item-actions">
+                                <button
+                                    type="button"
+                                    className="action-button danger"
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        handleDelete(u.id);
+                                    }}
+                                >
                                     Delete
                                 </button>
                             </div>
                         </div>
                     ))}
-                </div>}
+                </div>
+            )}
         </>
     );
 }
