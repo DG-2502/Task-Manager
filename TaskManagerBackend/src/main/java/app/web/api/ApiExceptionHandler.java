@@ -1,31 +1,59 @@
 package app.web.api;
 
-import app.exception.AccessDeniedException;
-import app.exception.AuthenticationException;
-import app.exception.ValidationException;
+import app.exception.*;
+import app.web.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.Map;
+import java.time.Instant;
 
 @RestControllerAdvice(basePackages = "app.web.api")
 public class ApiExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    private ResponseEntity<ErrorResponse> buildResponse(
+            HttpStatus status, String message, String field, HttpServletRequest req) {
+        ErrorResponse error = new ErrorResponse(
+                Instant.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                field,
+                req.getRequestURI()
+        );
+
+        return ResponseEntity.status(status).body(error);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Map<String, String>> handleAuth(AuthenticationException e) {
-        return ResponseEntity.status(401).body(Map.of("message", e.getMessage()));
+    public ResponseEntity<ErrorResponse> handleAuth(AuthenticationException e, HttpServletRequest req) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, e.getMessage(), null, req);
     }
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<Map<String, String>> handleValidation(ValidationException e) {
-        return ResponseEntity.badRequest().body(Map.of(
-                "field", e.getField() != null ? e.getField() : "",
-                "message", e.getMessage()
-        ));
+    public ResponseEntity<ErrorResponse> handleValidation(ValidationException e, HttpServletRequest req) {
+        return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage(), e.getField(), req);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException e) {
-        return ResponseEntity.status(403).body(Map.of("message", e.getMessage()));
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e, HttpServletRequest req) {
+        return buildResponse(HttpStatus.FORBIDDEN, e.getMessage(), null, req);
+    }
+
+    @ExceptionHandler({TaskNotFoundException.class, UserNotFoundException.class})
+    public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException e, HttpServletRequest req) {
+        return buildResponse(HttpStatus.NOT_FOUND, e.getMessage(), null, req);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handle(Exception e, HttpServletRequest req) {
+        log.error("Unhandled exception at {}: {}", req.getRequestURI(), e.getMessage(), e);
+
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", null, req);
     }
 }

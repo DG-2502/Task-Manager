@@ -9,20 +9,19 @@ export async function apiFetch(path, options = {}) {
     });
 
     if (!response.ok) {
-        const contentType = response.headers.get('content-type') || '';
         let message = `Request failed: ${response.status}`;
         let field = null;
 
-        if (contentType.includes('application/json')) {
+        const text = await response.text();
+
+        if (text) {
             try {
-                const body = await response.json();
+                const body = JSON.parse(text);
                 if (body.message) message = body.message;
                 if (body.field) field = body.field;
             } catch {
+                message = text;
             }
-        } else {
-            const text = await response.text();
-            if (text) message = text;
         }
 
         const error = new Error(message);
