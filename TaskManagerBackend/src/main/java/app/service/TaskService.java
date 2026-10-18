@@ -26,13 +26,13 @@ public class TaskService {
         this.userRepo = userRepo;
     }
 
-    public Task createTask(User requester, int userId, String title) throws AccessDeniedException, UserNotFoundException {
+    public Task createTask(User requester, int userId, String title, Task.Priority priority) throws AccessDeniedException, UserNotFoundException {
         if (!requester.isAdmin() && userId != requester.getId()) {
             throw new AccessDeniedException("Only admins can create tasks for another user");
         }
         User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
-        Task task = new Task(title, LocalDate.now(), Task.State.ACTIVE, user.getId());
+        Task task = new Task(title, LocalDate.now(), Task.State.ACTIVE, user.getId(), priority);
         return taskRepo.save(task);
     }
 
@@ -64,7 +64,7 @@ public class TaskService {
         taskRepo.deleteByCreatorIdAndState(userId, Task.State.CLOSED);
     }
 
-    public void updateTask(User requester, int taskId, String newTitle, Task.State state) throws TaskNotFoundException {
+    public void updateTask(User requester, int taskId, String newTitle, Task.State state, Task.Priority priority) throws TaskNotFoundException {
         Task task = taskRepo.findById(taskId).orElseThrow(() -> new TaskNotFoundException(taskId));
 
         if (!requester.isAdmin() && task.getCreatorId() != requester.getId()) {
@@ -73,6 +73,7 @@ public class TaskService {
 
         if (newTitle != null && !newTitle.isBlank()) task.setTitle(newTitle);
         if (state != null) task.setState(state);
+        if (priority != null) task.setPriority(priority);
 
         taskRepo.save(task);
     }
@@ -81,7 +82,11 @@ public class TaskService {
         ALL, ACTIVE, CLOSED
     }
 
-    public Page<Task> getTasks(User requester, TaskFilter filter, int userID, int page, int size, String search) throws AccessDeniedException {
+    public enum PriorityFilter {
+        ALL, LOW, MEDIUM, HIGH
+    }
+
+    public Page<Task> getTasks(User requester, TaskFilter taskFilter, PriorityFilter priorityFilter, int userID, int page, int size, String search) throws AccessDeniedException {
         if (!requester.isAdmin() && userID != requester.getId()) {
             throw new AccessDeniedException("Only admins can get others' tasks");
         }
@@ -95,9 +100,18 @@ public class TaskService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
         Specification<Task> spec = Specification.where(TaskSpecifications.byCreatorId(userID));
-        if (filter == TaskFilter.ACTIVE) spec = spec.and(TaskSpecifications.byState(Task.State.ACTIVE));
-        if (filter == TaskFilter.CLOSED) spec = spec.and(TaskSpecifications.byState(Task.State.CLOSED));
+
+        if (taskFilter != TaskFilter.ALL) {
+            Task.State state = Task.State.valueOf(taskFilter.name());
+            spec = spec.and(TaskSpecifications.byState(state));
+        }
+
         if (search != null && !search.isBlank()) spec = spec.and(TaskSpecifications.titleContains(search));
+
+        if (priorityFilter != PriorityFilter.ALL) {
+            Task.Priority priority = Task.Priority.valueOf(priorityFilter.name());
+            spec = spec.and(TaskSpecifications.byPriority(priority));
+        }
 
         return taskRepo.findAll(spec, pageable);
     }

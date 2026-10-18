@@ -5,6 +5,7 @@ import app.domain.User;
 import app.service.TaskService;
 import app.service.UserService;
 import app.web.RequestContext;
+import app.web.dto.CreateTaskRequest;
 import app.web.dto.PageResponse;
 import app.web.dto.TaskResponse;
 import app.web.dto.UserResponse;
@@ -33,7 +34,9 @@ public class AdminApiController {
                                                @RequestParam(required = false) String search,
                                                HttpServletRequest req) {
         User admin = RequestContext.currentUser(req);
+
         UserService.UserFilter userFilter = UserService.UserFilter.valueOf(filter.toUpperCase());
+
         Page<User> users = userService.getUsers(admin, userFilter, page, size, search);
         return PageResponse.from(users, UserResponse::from);
     }
@@ -44,10 +47,14 @@ public class AdminApiController {
                                                @RequestParam(defaultValue = "10") int size,
                                                @RequestParam(defaultValue = "ALL") String filter,
                                                @RequestParam(required = false) String search,
+                                               @RequestParam(defaultValue = "ALL") String priority,
                                                HttpServletRequest request) {
         User admin = RequestContext.currentUser(request);
+
         TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
-        Page<Task> taskPage = taskService.getTasks(admin, taskFilter, id, page, size, search);
+        TaskService.PriorityFilter priorityFilter = TaskService.PriorityFilter.valueOf(priority.toUpperCase());
+
+        Page<Task> taskPage = taskService.getTasks(admin, taskFilter, priorityFilter, id, page, size, search);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
@@ -59,9 +66,10 @@ public class AdminApiController {
     }
 
     @PostMapping("/users/{userId}/tasks")
-    public TaskResponse createTask(@PathVariable int userId, HttpServletRequest req, @RequestBody Map<String, String> body) {
+    public TaskResponse createTask(@PathVariable int userId, HttpServletRequest req, @RequestBody CreateTaskRequest body) {
         User admin = RequestContext.currentUser(req);
-        Task task = taskService.createTask(admin, userId, body.get("title"));
+
+        Task task = taskService.createTask(admin, userId, body.title(), body.priority());
         return TaskResponse.from(task);
     }
 

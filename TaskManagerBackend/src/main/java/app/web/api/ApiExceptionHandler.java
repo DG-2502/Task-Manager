@@ -56,4 +56,9 @@ public class ApiExceptionHandler {
 
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", null, req);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e, HttpServletRequest req) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "Invalid parameter value: " + e.getMessage(), null, req);
+    }
 }

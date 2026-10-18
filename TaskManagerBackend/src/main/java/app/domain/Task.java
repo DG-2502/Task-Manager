@@ -24,19 +24,28 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Priority priority;
+
 
     public enum State {
         CLOSED, ACTIVE
     }
 
+    public enum Priority {
+        LOW, MEDIUM, HIGH
+    }
+
     protected Task() {
     }
 
-    public Task(String title, LocalDate startDate, State state, int creatorId) {
+    public Task(String title, LocalDate startDate, State state, int creatorId, Priority priority) {
         this.title = title;
         this.startDate = startDate;
         this.state = state;
         this.creatorId = creatorId;
+        this.priority = priority;
     }
 
     @Override
@@ -82,5 +91,13 @@ public class Task {
 
     public void setCreatorId(int creatorId) {
         this.creatorId = creatorId;
+    }
+
+    public Priority getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Priority priority) {
+        this.priority = priority;
     }
 }

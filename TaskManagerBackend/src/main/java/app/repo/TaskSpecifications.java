@@ -22,4 +22,9 @@ public final class TaskSpecifications {
         return (root, query, criteriaBuilder) ->
                 criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern);
     }
+
+    public static  Specification<Task> byPriority(Task.Priority priority) {
+        return ((root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("priority"), priority));
+    }
 }
