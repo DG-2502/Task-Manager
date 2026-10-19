@@ -1,4 +1,4 @@
-package app.web.dto;
+package app.web.dto.request;
 
 import app.domain.Task;
 

@@ -4,6 +4,7 @@ import app.domain.Task;
 import app.domain.User;
 import app.exception.AccessDeniedException;
 import app.exception.TaskNotFoundException;
+import app.exception.ValidationException;
 import app.repo.TaskRepository;
 import app.repo.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +79,31 @@ public class TaskServiceTest {
 
         verify(taskRepo, times(1)).save(any(Task.class));
     }
+
+
+    @Test
+    void createTask_ShouldThrow_WhenTitleIsEmpty() {
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            taskService.createTask(normalUser, normalUser.getId(), "", Task.Priority.MEDIUM);
+        });
+
+        assertEquals("Title must not be empty", exception.getMessage());
+
+        verify(taskRepo, never()).save(any(Task.class));
+    }
+
+    @Test
+    void createTask_shouldThrow_WhenTitleIsTooLong() {
+        String title = "C".repeat(256);
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            taskService.createTask(normalUser, normalUser.getId(), title, Task.Priority.MEDIUM);
+        });
+
+        assertEquals("Title's length cannot exceed 255 characters", exception.getMessage());
+
+        verify(taskRepo, never()).save(any(Task.class));
+    }
+
 
     @Test
     void closeTask_ShouldThrowNotFound_WhenTaskDoesNotExist() {

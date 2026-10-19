@@ -4,6 +4,7 @@ import app.domain.*;
 import app.exception.AccessDeniedException;
 import app.exception.TaskNotFoundException;
 import app.exception.UserNotFoundException;
+import app.exception.ValidationException;
 import app.repo.TaskRepository;
 import app.repo.TaskSpecifications;
 import app.repo.UserRepository;
@@ -26,10 +27,13 @@ public class TaskService {
         this.userRepo = userRepo;
     }
 
-    public Task createTask(User requester, int userId, String title, Task.Priority priority) throws AccessDeniedException, UserNotFoundException {
+    public Task createTask(User requester, int userId, String title, Task.Priority priority) throws AccessDeniedException, UserNotFoundException, ValidationException {
         if (!requester.isAdmin() && userId != requester.getId()) {
             throw new AccessDeniedException("Only admins can create tasks for another user");
         }
+
+        validateTitle(title);
+
         User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         Task task = new Task(title, LocalDate.now(), Task.State.ACTIVE, user.getId(), priority);
@@ -71,14 +75,17 @@ public class TaskService {
             throw new TaskNotFoundException(taskId);
         }
 
-        if (newTitle != null && !newTitle.isBlank()) task.setTitle(newTitle);
+        if (newTitle != null && !newTitle.isBlank()) {
+            validateTitle(newTitle);
+            task.setTitle(newTitle);
+        }
         if (state != null) task.setState(state);
         if (priority != null) task.setPriority(priority);
 
         taskRepo.save(task);
     }
 
-    public enum TaskFilter {
+    public enum StateFilter {
         ALL, ACTIVE, CLOSED
     }
 
@@ -86,7 +93,7 @@ public class TaskService {
         ALL, LOW, MEDIUM, HIGH
     }
 
-    public Page<Task> getTasks(User requester, TaskFilter taskFilter, PriorityFilter priorityFilter, int userID, int page, int size, String search) throws AccessDeniedException {
+    public Page<Task> getTasks(User requester, StateFilter stateFilter, PriorityFilter priorityFilter, int userID, int page, int size, String search) throws AccessDeniedException {
         if (!requester.isAdmin() && userID != requester.getId()) {
             throw new AccessDeniedException("Only admins can get others' tasks");
         }
@@ -101,8 +108,8 @@ public class TaskService {
 
         Specification<Task> spec = Specification.where(TaskSpecifications.byCreatorId(userID));
 
-        if (taskFilter != TaskFilter.ALL) {
-            Task.State state = Task.State.valueOf(taskFilter.name());
+        if (stateFilter != StateFilter.ALL) {
+            Task.State state = Task.State.valueOf(stateFilter.name());
             spec = spec.and(TaskSpecifications.byState(state));
         }
 
@@ -132,5 +139,15 @@ public class TaskService {
         }
 
         return task;
+    }
+
+    private void validateTitle(String title) throws ValidationException {
+        if (title == null || title.isBlank()) {
+            throw new ValidationException("title", "Title must not be empty");
+        }
+
+        if (title.length() > 255) {
+            throw new ValidationException("title", "Title's length cannot exceed 255 characters");
+        }
     }
 }

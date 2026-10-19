@@ -1,4 +1,4 @@
-package app.web.dto;
+package app.web.dto.response;
 
 import org.springframework.data.domain.Page;
 

@@ -5,10 +5,10 @@ import app.domain.User;
 import app.service.TaskService;
 import app.service.UserService;
 import app.web.RequestContext;
-import app.web.dto.CreateTaskRequest;
-import app.web.dto.PageResponse;
-import app.web.dto.TaskResponse;
-import app.web.dto.UserResponse;
+import app.web.dto.request.CreateTaskRequest;
+import app.web.dto.response.PageResponse;
+import app.web.dto.response.TaskResponse;
+import app.web.dto.response.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -30,14 +30,14 @@ public class AdminApiController {
     @GetMapping("/users")
     public PageResponse<UserResponse> getUsers(@RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "10") int size,
-                                               @RequestParam(defaultValue = "ALL") String filter,
+                                               @RequestParam(defaultValue = "ALL") String status,
                                                @RequestParam(required = false) String search,
                                                HttpServletRequest req) {
         User admin = RequestContext.currentUser(req);
 
-        UserService.UserFilter userFilter = UserService.UserFilter.valueOf(filter.toUpperCase());
+        UserService.StatusFilter statusFilter = UserService.StatusFilter.valueOf(status.toUpperCase());
 
-        Page<User> users = userService.getUsers(admin, userFilter, page, size, search);
+        Page<User> users = userService.getUsers(admin, statusFilter, page, size, search);
         return PageResponse.from(users, UserResponse::from);
     }
 
@@ -45,16 +45,16 @@ public class AdminApiController {
     public PageResponse<TaskResponse> getTasks(@PathVariable int id,
                                                @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "10") int size,
-                                               @RequestParam(defaultValue = "ALL") String filter,
+                                               @RequestParam(defaultValue = "ALL") String state,
                                                @RequestParam(required = false) String search,
                                                @RequestParam(defaultValue = "ALL") String priority,
                                                HttpServletRequest request) {
         User admin = RequestContext.currentUser(request);
 
-        TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
+        TaskService.StateFilter stateFilter = TaskService.StateFilter.valueOf(state.toUpperCase());
         TaskService.PriorityFilter priorityFilter = TaskService.PriorityFilter.valueOf(priority.toUpperCase());
 
-        Page<Task> taskPage = taskService.getTasks(admin, taskFilter, priorityFilter, id, page, size, search);
+        Page<Task> taskPage = taskService.getTasks(admin, stateFilter, priorityFilter, id, page, size, search);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 

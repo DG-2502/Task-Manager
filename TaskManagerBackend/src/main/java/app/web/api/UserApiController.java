@@ -4,7 +4,7 @@ import app.domain.User;
 import app.exception.ValidationException;
 import app.service.UserService;
 import app.web.RequestContext;
-import app.web.dto.UserResponse;
+import app.web.dto.response.UserResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;

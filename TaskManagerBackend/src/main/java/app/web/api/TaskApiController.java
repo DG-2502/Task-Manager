@@ -4,10 +4,10 @@ import app.domain.Task;
 import app.domain.User;
 import app.service.TaskService;
 import app.web.RequestContext;
-import app.web.dto.CreateTaskRequest;
-import app.web.dto.PageResponse;
-import app.web.dto.TaskResponse;
-import app.web.dto.UpdateTaskRequest;
+import app.web.dto.request.CreateTaskRequest;
+import app.web.dto.response.PageResponse;
+import app.web.dto.response.TaskResponse;
+import app.web.dto.request.UpdateTaskRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -25,16 +25,16 @@ public class TaskApiController {
     @GetMapping("")
     public PageResponse<TaskResponse> myTasks(@RequestParam(defaultValue = "0") int page,
                                               @RequestParam(defaultValue = "10") int size,
-                                              @RequestParam(defaultValue = "ALL") String filter,
+                                              @RequestParam(defaultValue = "ALL") String state,
                                               @RequestParam(required = false) String search,
                                               @RequestParam(defaultValue = "ALL") String priority,
                                               HttpServletRequest request) {
         User me = RequestContext.currentUser(request);
 
-        TaskService.TaskFilter taskFilter = TaskService.TaskFilter.valueOf(filter.toUpperCase());
+        TaskService.StateFilter stateFilter = TaskService.StateFilter.valueOf(state.toUpperCase());
         TaskService.PriorityFilter priorityFilter = TaskService.PriorityFilter.valueOf(priority.toUpperCase());
 
-        Page<Task> taskPage = taskService.getTasks(me, taskFilter, priorityFilter, me.getId(), page, size, search);
+        Page<Task> taskPage = taskService.getTasks(me, stateFilter, priorityFilter, me.getId(), page, size, search);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 

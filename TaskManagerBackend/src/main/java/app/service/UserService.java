@@ -5,7 +5,6 @@ import app.exception.AccessDeniedException;
 import app.exception.AuthenticationException;
 import app.exception.UserNotFoundException;
 import app.exception.ValidationException;
-import app.exception.*;
 import app.repo.UserRepository;
 import app.repo.UserSpecifications;
 import org.springframework.data.domain.Page;
@@ -71,7 +70,7 @@ public class UserService {
         }
     }
 
-    private void validateUsername(String username) {
+    private void validateUsername(String username) throws ValidationException {
         if (username == null || username.isBlank()) {
             throw new ValidationException("username", "Username is required");
         }
@@ -134,11 +133,11 @@ public class UserService {
         userRepo.save(user);
     }
 
-    public enum UserFilter {
+    public enum StatusFilter {
         ALL, USERS, ADMINS
     }
 
-    public Page<User> getUsers(User requester, UserFilter filter, int page, int size, String search) {
+    public Page<User> getUsers(User requester, StatusFilter statusFilter, int page, int size, String search) {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");
         }
@@ -152,8 +151,8 @@ public class UserService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
         Specification<User> spec = Specification.unrestricted();
-        if (filter == UserFilter.USERS) spec = spec.and(UserSpecifications.byStatus(User.Status.USER));
-        if (filter == UserFilter.ADMINS) spec = spec.and(UserSpecifications.byStatus(User.Status.ADMIN));
+        if (statusFilter == StatusFilter.USERS) spec = spec.and(UserSpecifications.byStatus(User.Status.USER));
+        if (statusFilter == StatusFilter.ADMINS) spec = spec.and(UserSpecifications.byStatus(User.Status.ADMIN));
         if (search != null && !search.isBlank()) spec = spec.and(UserSpecifications.usernameContains(search));
 
         return userRepo.findAll(spec, pageable);

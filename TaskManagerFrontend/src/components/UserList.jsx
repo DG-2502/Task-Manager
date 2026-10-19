@@ -13,7 +13,7 @@ export default function UserList({onSelect, selectedId}) {
     const [creating, setCreating] = useState(false);
 
     const buildUrl = useCallback(({page, size, filter, search}) => {
-        const params = new URLSearchParams({page, size, filter});
+        const params = new URLSearchParams({page, size, status: filter});
         if (search) params.set('search', search);
         return `/api/admin/users?${params}`;
     }, []);
