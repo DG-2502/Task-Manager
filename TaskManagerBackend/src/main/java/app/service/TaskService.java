@@ -75,7 +75,7 @@ public class TaskService {
             throw new TaskNotFoundException(taskId);
         }
 
-        if (newTitle != null && !newTitle.isBlank()) {
+        if (newTitle != null) {
             validateTitle(newTitle);
             task.setTitle(newTitle);
         }
