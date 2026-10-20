@@ -5,7 +5,9 @@ import app.domain.User;
 import app.service.TaskService;
 import app.service.UserService;
 import app.web.RequestContext;
-import app.web.dto.request.CreateTaskRequest;
+import app.web.dto.request.user.UpdateUserRequest;
+import app.web.dto.request.task.CreateTaskRequest;
+import app.web.dto.request.user.CreateUserRequest;
 import app.web.dto.response.PageResponse;
 import app.web.dto.response.TaskResponse;
 import app.web.dto.response.UserResponse;
@@ -13,8 +15,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -58,11 +58,11 @@ public class AdminApiController {
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable int id, HttpServletRequest req) {
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable int userId, HttpServletRequest req) {
         User admin = RequestContext.currentUser(req);
-        userService.deleteUserById(id, admin);
-        return ResponseEntity.ok("Deleted user with id: " + id);
+        userService.deleteUserById(userId, admin);
+        return ResponseEntity.ok("Deleted user with userId: " + userId);
     }
 
     @PostMapping("/users/{userId}/tasks")
@@ -74,13 +74,23 @@ public class AdminApiController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<?> createUser(HttpServletRequest req, @RequestBody Map<String, String> body) {
+    public UserResponse createUser(HttpServletRequest req, @RequestBody CreateUserRequest body) {
         User admin = RequestContext.currentUser(req);
-        String username = body.get("username");
-        String password = body.get("password");
-        User.Status status = User.Status.valueOf(body.get("status").toUpperCase());
 
-        userService.createNewUser(admin, username, password, status);
-        return ResponseEntity.ok("Created new user");
+        User user = userService.createNewUser(admin, body.username(), body.password(), body.status());
+        return UserResponse.from(user);
+    }
+
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<?> updateUser(@PathVariable int userId, HttpServletRequest req, @RequestBody UpdateUserRequest body) {
+        User admin = RequestContext.currentUser(req);
+
+        userService.update(admin, userId, body.username(), body.status());
+
+        if (body.password() != null && !body.password().isBlank()) {
+            userService.changePassword(admin, userId, null, body.password());
+        }
+
+        return ResponseEntity.ok("Updated user with id: " + userId);
     }
 }

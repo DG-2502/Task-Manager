@@ -40,22 +40,23 @@ public class UserService {
         throw new AuthenticationException("The username or password is incorrect");
     }
 
-    public void register(String username, String password, User.Status status) throws ValidationException {
+    public User register(String username, String password, User.Status status) throws ValidationException {
         validatePassword(password);
-        validateUsername(username);
+        validateUsernameFormat(username);
+        validateUsernameUniqueness(username, null);
 
         String passwordHash = passwordHasher.hash(password);
 
         User user = new User(username, status, passwordHash);
-        userRepo.save(user);
+        return userRepo.save(user);
     }
 
-    public void createNewUser(User requester, String username, String password, User.Status status) throws AccessDeniedException, ValidationException {
+    public User createNewUser(User requester, String username, String password, User.Status status) throws AccessDeniedException, ValidationException {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can create new users");
         }
 
-        register(username, password, status);
+        return register(username, password, status);
     }
 
     private void validatePassword(String password) throws ValidationException {
@@ -70,20 +71,25 @@ public class UserService {
         }
     }
 
-    private void validateUsername(String username) throws ValidationException {
+    private void validateUsernameFormat(String username) throws ValidationException {
         if (username == null || username.isBlank()) {
             throw new ValidationException("username", "Username is required");
         }
         if (!username.matches("\\w+")) {
             throw new ValidationException("username", "Username can only contain letters, digits and underscore");
         }
+    }
+
+    private void validateUsernameUniqueness(String username, Integer excludedUserId) throws ValidationException {
         Optional<User> optionalUser = userRepo.getByUsername(username);
         if (optionalUser.isPresent()) {
-            throw new ValidationException("username", "Username is already taken");
+            if (excludedUserId == null || optionalUser.get().getId() != excludedUserId) {
+                throw new ValidationException("username", "Username: " + username + " is already taken");
+            }
         }
     }
 
-    public User update(User requester, int userId, String newUsername, User.Status newStatus) throws AccessDeniedException, ValidationException {
+    public void update(User requester, int userId, String newUsername, User.Status newStatus) throws AccessDeniedException, ValidationException {
         User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
         if (newStatus == null) {
             newStatus = user.getStatus();
@@ -102,16 +108,14 @@ public class UserService {
             throw new AccessDeniedException("Admins cannot change themselves to users");
         }
 
-        if (newUsername != null && !newUsername.isBlank()) {
-            Optional<User> optionalUser = userRepo.getByUsername(newUsername);
-            if (optionalUser.isPresent() && optionalUser.get().getId() != userId) {
-                throw new ValidationException("username", "Username: " + newUsername + " is already taken");
-            }
+        if (newUsername != null && !newUsername.equals(user.getUsername())) {
+            validateUsernameFormat(newUsername);
+            validateUsernameUniqueness(newUsername, userId);
+            user.setUsername(newUsername);
         }
 
-        if (newUsername != null && !newUsername.isBlank()) user.setUsername(newUsername);
         user.setStatus(newStatus);
-        return userRepo.save(user);
+        userRepo.save(user);
     }
 
     public void changePassword(User requester, int userId, String password, String newPassword) throws AccessDeniedException, AuthenticationException, ValidationException, UserNotFoundException {
