@@ -53,7 +53,11 @@ export default function RegisterPage() {
                            autoComplete="username"
                            placeholder="Enter your username"
                            value={username}
-                           onChange={e => setUsername(e.target.value)}
+                           onChange={e => {
+                               setError(null);
+                               setErrorField(null);
+                               setUsername(e.target.value)
+                           }}
                            required
                     />
 
@@ -63,7 +67,11 @@ export default function RegisterPage() {
                            autoComplete="new-password"
                            placeholder="Enter your password"
                            value={password}
-                           onChange={e => setPassword(e.target.value)}
+                           onChange={e => {
+                               setError(null);
+                               setErrorField(null);
+                               setPassword(e.target.value)
+                           }}
                            required
                     />
 
@@ -73,13 +81,17 @@ export default function RegisterPage() {
                            autoComplete="new-password"
                            placeholder="Repeat your password"
                            value={passwordConfirm}
-                           onChange={e => setPasswordConfirm(e.target.value)}
+                           onChange={e => {
+                               setError(null);
+                               setErrorField(null);
+                               setPasswordConfirm(e.target.value)
+                           }}
                            required
                     />
                 </div>
                 {error && <p className="field-error">{error}</p>}
                 <button type="submit" disabled={loading}>
-                    {loading ? 'Registering…' : 'Register'}
+                    {loading ? 'Registering...' : 'Register'}
                 </button>
             </form>
             <p><i>Already have an account?</i> <Link to="/login">Log in</Link></p>

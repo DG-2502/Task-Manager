@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import UserList from '../components/UserList';
 import TaskList from '../components/TaskList';
+import ExpandableTitle from '../components/ExpandableTitle';
 
 export default function AdminPage() {
     const [selectedUser, setSelectedUser] = useState(null);
@@ -16,7 +17,10 @@ export default function AdminPage() {
 
             {selectedUser && (
                 <>
-                    <h2 className="section-title">Tasks of {selectedUser.username}</h2>
+                    <ExpandableTitle
+                        text={`Tasks of ${selectedUser.username}`}
+                        className="section-title"
+                    />
                     <TaskList key={selectedUser.id} userId={selectedUser.id} isAdmin />
                 </>
             )}

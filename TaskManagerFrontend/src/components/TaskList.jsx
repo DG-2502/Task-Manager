@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import {apiFetch} from '../api/client';
 import usePagedResource from '../hooks/usePagedResource';
 import PriorityBadge from './PriorityBadge';
+import ExpandableTitle from "./ExpandableTitle.jsx";
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
 
@@ -19,7 +20,7 @@ export default function TaskList({userId, isAdmin = false}) {
         const base = isAdmin ? `/api/admin/users/${userId}/tasks` : '/api/tasks';
         const params = new URLSearchParams({page, size, state: filter});
         if (search) params.set('search', search);
-        if (priorityFilter !== 'ALL') params.set('priority', priorityFilter);
+        params.set('priority', priorityFilter);
         return `${base}?${params}`;
     }, [userId, isAdmin, priorityFilter]);
 
@@ -279,7 +280,7 @@ export default function TaskList({userId, isAdmin = false}) {
                                         className="action-button"
                                         disabled={saving}
                                     >
-                                        {saving ? 'Saving…' : 'Save'}
+                                        {saving ? 'Saving...' : 'Save'}
                                     </button>
                                     <button
                                         type="button"
@@ -297,7 +298,7 @@ export default function TaskList({userId, isAdmin = false}) {
                                 className={`list-item ${task.state === 'CLOSED' ? 'closed' : ''}`}
                             >
                                 <div className="list-item-info">
-                                    <div className="list-item-title">{task.title}</div>
+                                    <ExpandableTitle text={task.title} className="list-item-title" />
                                     <div className="list-item-meta">
                                         <PriorityBadge priority={task.priority}/>
                                         <span>{task.startDate}</span>

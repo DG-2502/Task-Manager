@@ -48,7 +48,10 @@ export default function LoginPage() {
                            autoComplete="username"
                            placeholder="Enter your username"
                            value={username}
-                           onChange={e => setUsername(e.target.value)}
+                           onChange={e => {
+                               setError(null);
+                               setUsername(e.target.value)
+                           }}
                            required
                     />
 
@@ -58,13 +61,16 @@ export default function LoginPage() {
                            autoComplete="current-password"
                            placeholder="Enter your password"
                            value={password}
-                           onChange={e => setPassword(e.target.value)}
+                           onChange={e => {
+                               setError(null);
+                               setPassword(e.target.value)
+                           }}
                            required
                     />
                 </div>
                 {error && <p className="field-error">{error}</p>}
                 <button type="submit" disabled={loading}>
-                    {loading ? 'Logging in…' : 'Log in'}
+                    {loading ? 'Logging in...' : 'Log in'}
                 </button>
             </form>
             <p><i>Don't have an account?</i> <Link to="/register">Create one</Link></p>
