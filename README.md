@@ -1,3 +1,19 @@
+# Task Manager
+A full stack application for managing your daily tasks and/or projects
+
+## Teck stack
+**Backend:** Java 27, Spring Boot 3, Sring Data JPA, PostgreSQL, Flyway, BCrypt, JUnit and Mockito
+
+**Frontend:** Node.js 24, React, Vite
+
+**DevOps:** Docker, GitHub Actions (CI/CD pipeline)
+
+## Features
+- Full CRUD operations with filtering/pagination
+- Admin panel for admins to manage users and their tasks
+- Authentication is session based for now
+- Database migration is managed by Flyway
+
 # HOW TO RUN
 
 ## Using Docker Desktop
