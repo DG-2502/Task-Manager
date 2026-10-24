@@ -1,8 +1,8 @@
 # Task Manager
 A full stack application for managing your daily tasks and/or projects
 
-## Teck stack
-**Backend:** Java 27, Spring Boot 3, Sring Data JPA, PostgreSQL, Flyway, BCrypt, JUnit and Mockito
+## Tech stack
+**Backend:** Java 27, Spring Boot 3, Spring Data JPA, PostgreSQL, Flyway, BCrypt, JUnit and Mockito
 
 **Frontend:** Node.js 24, React, Vite
 
@@ -48,7 +48,7 @@ docker compose up --build
 ### Make sure you have JDK 27, Node 24, PostgreSQL and Maven installed
 
 ### Setup database
-```postgresql
+```sql
 CREATE USER task_app WITH PASSWORD '1234';
 CREATE DATABASE task_db OWNER task_app;
 ```
@@ -63,7 +63,7 @@ cd TaskManagerBackend
 Make sure to provide local environment variables `DB_URL`, `DB_USER` and `DB_PASSWORD`. Or you can set them in
 `application.properties` manually. 
 ```dotenv
-spring.datasource.url=postgresql://localhost:5432/task_db
+spring.datasource.url=jdbc:postgresql://localhost:5432/task_db
 spring.datasource.username=task_app
 spring.datasource.password=1234
 ```
