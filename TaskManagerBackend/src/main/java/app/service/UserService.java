@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -19,11 +20,11 @@ import java.util.Optional;
 @Service
 public class UserService {
     private final UserRepository userRepo;
-    private final PasswordHasher passwordHasher;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepo, PasswordHasher passwordHasher) {
+    public UserService(UserRepository userRepo, PasswordEncoder passwordEncoder) {
         this.userRepo = userRepo;
-        this.passwordHasher = passwordHasher;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public User login(String username, String password) throws AuthenticationException {
@@ -33,7 +34,7 @@ public class UserService {
         }
 
         User user = optionalUser.get();
-        if (passwordHasher.matches(password, user.getPasswordHash())) {
+        if (passwordEncoder.matches(password, user.getPasswordHash())) {
             return user;
         }
 
@@ -45,7 +46,7 @@ public class UserService {
         validateUsernameFormat(username);
         validateUsernameUniqueness(username, null);
 
-        String passwordHash = passwordHasher.hash(password);
+        String passwordHash = passwordEncoder.encode(password);
 
         User user = new User(username, status, passwordHash);
         return userRepo.save(user);
@@ -126,14 +127,14 @@ public class UserService {
         User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         if (requester.getId() == userId) {
-            if (!passwordHasher.matches(password, user.getPasswordHash())) {
+            if (!passwordEncoder.matches(password, user.getPasswordHash())) {
                 throw new AuthenticationException("Current password is incorrect");
             }
         }
 
         validatePassword(newPassword);
 
-        user.setPasswordHash(passwordHasher.hash(newPassword));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepo.save(user);
     }
 

@@ -2,10 +2,17 @@ package app.domain;
 
 
 import jakarta.persistence.*;
+import org.jspecify.annotations.NullMarked;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
@@ -38,6 +45,17 @@ public class User {
         return id + " " + username + " " + status;
     }
 
+    @Override
+    @NullMarked
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + status.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return passwordHash;
+    }
+
     public int getId() {
         return id;
     }
@@ -46,6 +64,8 @@ public class User {
         this.id = id;
     }
 
+    @Override
+    @NullMarked
     public String getUsername() {
         return username;
     }

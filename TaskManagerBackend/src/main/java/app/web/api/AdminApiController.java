@@ -4,16 +4,15 @@ import app.domain.Task;
 import app.domain.User;
 import app.service.TaskService;
 import app.service.UserService;
-import app.web.RequestContext;
-import app.web.dto.request.user.UpdateUserRequest;
 import app.web.dto.request.task.CreateTaskRequest;
 import app.web.dto.request.user.CreateUserRequest;
+import app.web.dto.request.user.UpdateUserRequest;
 import app.web.dto.response.PageResponse;
 import app.web.dto.response.TaskResponse;
 import app.web.dto.response.UserResponse;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,9 +31,7 @@ public class AdminApiController {
                                                @RequestParam(defaultValue = "10") int size,
                                                @RequestParam(defaultValue = "ALL") String status,
                                                @RequestParam(required = false) String search,
-                                               HttpServletRequest req) {
-        User admin = RequestContext.currentUser(req);
-
+                                               @AuthenticationPrincipal User admin) {
         UserService.StatusFilter statusFilter = UserService.StatusFilter.valueOf(status.toUpperCase());
 
         Page<User> users = userService.getUsers(admin, statusFilter, page, size, search);
@@ -48,9 +45,7 @@ public class AdminApiController {
                                                @RequestParam(defaultValue = "ALL") String state,
                                                @RequestParam(required = false) String search,
                                                @RequestParam(defaultValue = "ALL") String priority,
-                                               HttpServletRequest request) {
-        User admin = RequestContext.currentUser(request);
-
+                                               @AuthenticationPrincipal User admin) {
         TaskService.StateFilter stateFilter = TaskService.StateFilter.valueOf(state.toUpperCase());
         TaskService.PriorityFilter priorityFilter = TaskService.PriorityFilter.valueOf(priority.toUpperCase());
 
@@ -59,32 +54,25 @@ public class AdminApiController {
     }
 
     @DeleteMapping("/users/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable int userId, HttpServletRequest req) {
-        User admin = RequestContext.currentUser(req);
+    public ResponseEntity<?> deleteUser(@PathVariable int userId, @AuthenticationPrincipal User admin) {
         userService.deleteUserById(userId, admin);
         return ResponseEntity.ok("Deleted user with userId: " + userId);
     }
 
     @PostMapping("/users/{userId}/tasks")
-    public TaskResponse createTask(@PathVariable int userId, HttpServletRequest req, @RequestBody CreateTaskRequest body) {
-        User admin = RequestContext.currentUser(req);
-
+    public TaskResponse createTask(@PathVariable int userId, @AuthenticationPrincipal User admin, @RequestBody CreateTaskRequest body) {
         Task task = taskService.createTask(admin, userId, body.title(), body.priority());
         return TaskResponse.from(task);
     }
 
     @PostMapping("/users")
-    public UserResponse createUser(HttpServletRequest req, @RequestBody CreateUserRequest body) {
-        User admin = RequestContext.currentUser(req);
-
+    public UserResponse createUser(@AuthenticationPrincipal User admin, @RequestBody CreateUserRequest body) {
         User user = userService.createNewUser(admin, body.username(), body.password(), body.status());
         return UserResponse.from(user);
     }
 
     @PatchMapping("/users/{userId}")
-    public ResponseEntity<?> updateUser(@PathVariable int userId, HttpServletRequest req, @RequestBody UpdateUserRequest body) {
-        User admin = RequestContext.currentUser(req);
-
+    public ResponseEntity<?> updateUser(@PathVariable int userId, @AuthenticationPrincipal User admin, @RequestBody UpdateUserRequest body) {
         userService.update(admin, userId, body.username(), body.status());
 
         if (body.password() != null && !body.password().isBlank()) {

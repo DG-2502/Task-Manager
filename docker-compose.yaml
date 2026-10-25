@@ -29,6 +29,9 @@ services:
 
       - APP_ADMIN_USERNAME=${APP_ADMIN_USERNAME}
       - APP_ADMIN_PASSWORD=${APP_ADMIN_PASSWORD}
+
+      - JWT_SECRET=${JWT_SECRET}
+      - APP_CORS_ALLOWED_ORIGINS=http://localhost,http://localhost:80
     depends_on:
       db:
         condition: service_healthy

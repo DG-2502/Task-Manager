@@ -2,7 +2,7 @@
 A full stack application for managing your daily tasks and/or projects
 
 ## Tech stack
-**Backend:** Java 27, Spring Boot 3, Spring Data JPA, PostgreSQL, Flyway, BCrypt, JUnit and Mockito
+**Backend:** Java 27, Spring Boot 3, Spring Data JPA, Spring Security, JWT, PostgreSQL, Flyway, BCrypt, JUnit and Mockito
 
 **Frontend:** Node.js 24, React, Vite
 
@@ -11,8 +11,8 @@ A full stack application for managing your daily tasks and/or projects
 ## Features
 - Full CRUD operations with filtering/pagination
 - Admin panel for admins to manage users and their tasks
-- Authentication is session based for now
-- Database migration is managed by Flyway
+- Authentication by JWT with role based access 
+- Database versions and migration is managed by Flyway
 
 # HOW TO RUN
 
@@ -27,6 +27,8 @@ SPRING_DATASOURCE_PASSWORD=user_password
 
 APP_ADMIN_USERNAME=admin
 APP_ADMIN_PASSWORD=1234
+
+JWT_SECRET=yourSecretBase64Key/OWbhjVMg9fetsuL/kWkSzihrsIzEPRfNhP1oajsbiA=
 ```
 
 `APP_ADMIN_USERNAME` and `APP_ADMIN_PASSWORD` are used to create the first admin user in a fresh database
@@ -60,12 +62,14 @@ cd TaskManagerBackend
 ./mvnw spring-boot:run
 ```
 
-Make sure to provide local environment variables `DB_URL`, `DB_USER` and `DB_PASSWORD`. Or you can set them in
+Make sure to provide local environment variables `DB_URL`, `DB_USER`, `DB_PASSWORD` and `JWT_SECRET_KEY`. Or you can set them in
 `application.properties` manually. 
 ```dotenv
 spring.datasource.url=jdbc:postgresql://localhost:5432/task_db
 spring.datasource.username=task_app
 spring.datasource.password=1234
+
+jwt.secret=yourSecretBase64Key/OWbhjVMg9fetsuL/kWkSzihrsIzEPRfNhP1oajsbiA=
 ```
 
 The API is served on the port `8080` by default

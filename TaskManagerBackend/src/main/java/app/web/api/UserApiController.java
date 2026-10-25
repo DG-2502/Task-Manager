@@ -2,15 +2,14 @@ package app.web.api;
 
 import app.domain.User;
 import app.exception.ValidationException;
+import app.service.JwtService;
 import app.service.UserService;
-import app.web.RequestContext;
 import app.web.dto.request.user.ChangePasswordRequest;
 import app.web.dto.request.user.RegisterRequest;
 import app.web.dto.request.user.UpdateProfileRequest;
 import app.web.dto.response.UserResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -19,21 +18,23 @@ import java.util.Map;
 @RequestMapping("/api/users")
 public class UserApiController {
     private final UserService userService;
+    private final JwtService jwtService;
 
-    public UserApiController(UserService userService) {
+    public UserApiController(UserService userService, JwtService jwtService) {
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpSession session) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         User user = userService.login(body.get("username"), body.get("password"));
-        session.setAttribute("userId", user.getId());
-        return ResponseEntity.ok(UserResponse.from(user));
+        String token = jwtService.generateToken(user);
+
+        return ResponseEntity.ok(Map.of("token", token, "user", UserResponse.from(user)));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session) {
-        session.invalidate();
+    public ResponseEntity<?> logout() {
         return ResponseEntity.ok("Logged out");
     }
 
@@ -53,23 +54,18 @@ public class UserApiController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> me(HttpServletRequest request) {
-        User user = RequestContext.currentUser(request);
+    public ResponseEntity<?> me(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(UserResponse.from(user));
     }
 
     @PatchMapping("/me")
-    public ResponseEntity<?> update(HttpServletRequest request, @RequestBody UpdateProfileRequest body) {
-        User me = RequestContext.currentUser(request);
-
+    public ResponseEntity<?> update(@AuthenticationPrincipal User me, @RequestBody UpdateProfileRequest body) {
         userService.update(me, me.getId(), body.username(), null);
         return ResponseEntity.ok("Updated profile");
     }
 
     @PatchMapping("/password")
-    public ResponseEntity<?> changePassword(HttpServletRequest req, @RequestBody ChangePasswordRequest body) {
-        User me = RequestContext.currentUser(req);
-
+    public ResponseEntity<?> changePassword(@AuthenticationPrincipal User me, @RequestBody ChangePasswordRequest body) {
         userService.changePassword(me, me.getId(), body.currentPassword(), body.newPassword());
 
         return ResponseEntity.ok("Password changed successfully");

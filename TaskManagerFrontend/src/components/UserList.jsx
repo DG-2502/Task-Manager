@@ -123,11 +123,8 @@ export default function UserList({onSelect, selectedId}) {
             });
 
             if (editingUserId === currentUser?.id) {
-                try {
-                    const fresh = await apiFetch('/api/users/me');
-                    setUser(fresh);
-                } catch {
-                }
+                const fresh = await apiFetch('/api/users/me');
+                setUser(fresh);
             }
 
             cancelEditUser();

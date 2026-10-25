@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -25,7 +26,7 @@ public class UserServiceTest {
     private UserRepository userRepo;
 
     @Mock
-    private PasswordHasher passwordHasher;
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
@@ -62,7 +63,7 @@ public class UserServiceTest {
         String fakePassword = "fakePassword";
 
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.of(normalUser));
-        when(passwordHasher.matches(fakePassword, normalUser.getPasswordHash())).thenReturn(false);
+        when(passwordEncoder.matches(fakePassword, normalUser.getPasswordHash())).thenReturn(false);
 
         AuthenticationException exception = assertThrows(AuthenticationException.class, () -> {
             userService.login(normalUser.getUsername(), fakePassword);
@@ -76,7 +77,7 @@ public class UserServiceTest {
         String truePassword = "truePassword";
 
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.of(normalUser));
-        when(passwordHasher.matches(truePassword, normalUser.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches(truePassword, normalUser.getPasswordHash())).thenReturn(true);
 
         User returnedUser = userService.login(normalUser.getUsername(), truePassword);
 
@@ -155,7 +156,7 @@ public class UserServiceTest {
 
     @Test
     void register_Success_WhenValidationsPass() {
-        when(passwordHasher.hash(anyString())).thenReturn("some hash");
+        when(passwordEncoder.encode(anyString())).thenReturn("some hash");
 
         userService.register("new_user", "password", User.Status.USER);
 
@@ -242,7 +243,7 @@ public class UserServiceTest {
     @Test
     void changePassword_ShouldThrow_WhenCurrentPasswordIsWrong() {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
-        when(passwordHasher.matches("wrongPassword", normalUser.getPasswordHash())).thenReturn(false);
+        when(passwordEncoder.matches("wrongPassword", normalUser.getPasswordHash())).thenReturn(false);
 
         assertThrows(AuthenticationException.class, () -> {
             userService.changePassword(normalUser, normalUser.getId(), "wrongPassword", "newPassword");
@@ -254,7 +255,7 @@ public class UserServiceTest {
     @Test
     void changePassword_ShouldThrow_WhenNewPasswordIsInvalid() {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
-        when(passwordHasher.matches("correctPassword", normalUser.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches("correctPassword", normalUser.getPasswordHash())).thenReturn(true);
 
         assertThrows(ValidationException.class, () -> {
             userService.changePassword(normalUser, normalUser.getId(), "correctPassword", "12");
@@ -264,8 +265,8 @@ public class UserServiceTest {
     @Test
     void changePassword_ShouldSucceed_WhenUserChangesTheirOwnPassword() {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
-        when(passwordHasher.matches("correctPassword", normalUser.getPasswordHash())).thenReturn(true);
-        when(passwordHasher.hash("newValidPassword")).thenReturn("newHashedPassword");
+        when(passwordEncoder.matches("correctPassword", normalUser.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.encode("newValidPassword")).thenReturn("newHashedPassword");
 
         userService.changePassword(normalUser, normalUser.getId(), "correctPassword", "newValidPassword");
 
@@ -276,7 +277,7 @@ public class UserServiceTest {
     @Test
     void changePassword_ShouldSucceed_WhenAdminChangesOthersPasswordWithoutCurrent() {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
-        when(passwordHasher.hash("newValidPassword")).thenReturn("newHashedPassword");
+        when(passwordEncoder.encode("newValidPassword")).thenReturn("newHashedPassword");
 
         userService.changePassword(adminUser, normalUser.getId(), null, "newValidPassword");
 

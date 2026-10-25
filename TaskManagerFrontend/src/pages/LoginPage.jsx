@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {useLocation, useNavigate, Link} from 'react-router-dom';
-import {apiFetch} from '../api/client';
+import {apiFetch, setToken} from '../api/client';
 import {useAuth} from '../auth/AuthContext';
 
 export default function LoginPage() {
@@ -21,10 +21,11 @@ export default function LoginPage() {
         setError(null);
         setLoading(true);
         try {
-            const user = await apiFetch('/api/users/login', {
+            const {token, user} = await apiFetch('/api/users/login', {
                 method: 'POST',
                 body: JSON.stringify({username, password}),
             });
+            setToken(token);
             setUser(user);
             navigate('/tasks');
         } catch (err) {
