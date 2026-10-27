@@ -8,6 +8,7 @@ import app.web.dto.request.task.UpdateTaskRequest;
 import app.web.dto.response.PageResponse;
 import app.web.dto.response.TaskResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -27,11 +28,15 @@ public class TaskApiController {
                                               @RequestParam(defaultValue = "ALL") String state,
                                               @RequestParam(required = false) String search,
                                               @RequestParam(defaultValue = "ALL") String priority,
+                                              @RequestParam(defaultValue = "ID") String sortBy,
+                                              @RequestParam(defaultValue = "ASC") String direction,
                                               @AuthenticationPrincipal User me) {
         TaskService.StateFilter stateFilter = TaskService.StateFilter.valueOf(state.toUpperCase());
         TaskService.PriorityFilter priorityFilter = TaskService.PriorityFilter.valueOf(priority.toUpperCase());
+        TaskService.SortField sortField = TaskService.SortField.valueOf(sortBy.toUpperCase());
+        Sort.Direction direction1 = Sort.Direction.valueOf(direction.toUpperCase());
 
-        Page<Task> taskPage = taskService.getTasks(me, stateFilter, priorityFilter, me.getId(), page, size, search);
+        Page<Task> taskPage = taskService.getTasks(me, stateFilter, priorityFilter, me.getId(), page, size, search, sortField, direction1);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 

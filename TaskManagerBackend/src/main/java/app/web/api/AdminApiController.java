@@ -11,6 +11,7 @@ import app.web.dto.response.PageResponse;
 import app.web.dto.response.TaskResponse;
 import app.web.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -45,11 +46,15 @@ public class AdminApiController {
                                                @RequestParam(defaultValue = "ALL") String state,
                                                @RequestParam(required = false) String search,
                                                @RequestParam(defaultValue = "ALL") String priority,
+                                               @RequestParam(defaultValue = "id") String sortBy,
+                                               @RequestParam(defaultValue = "ASC") String direction,
                                                @AuthenticationPrincipal User admin) {
         TaskService.StateFilter stateFilter = TaskService.StateFilter.valueOf(state.toUpperCase());
         TaskService.PriorityFilter priorityFilter = TaskService.PriorityFilter.valueOf(priority.toUpperCase());
+        TaskService.SortField sortField = TaskService.SortField.valueOf(sortBy.toUpperCase());
+        Sort.Direction direction1 = Sort.Direction.valueOf(direction.toUpperCase());
 
-        Page<Task> taskPage = taskService.getTasks(admin, stateFilter, priorityFilter, id, page, size, search);
+        Page<Task> taskPage = taskService.getTasks(admin, stateFilter, priorityFilter, id, page, size, search, sortField, direction1);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 

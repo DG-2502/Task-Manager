@@ -1,6 +1,7 @@
 package app.service;
 
-import app.domain.*;
+import app.domain.Task;
+import app.domain.User;
 import app.exception.AccessDeniedException;
 import app.exception.TaskNotFoundException;
 import app.exception.UserNotFoundException;
@@ -93,7 +94,15 @@ public class TaskService {
         ALL, LOW, MEDIUM, HIGH
     }
 
-    public Page<Task> getTasks(User requester, StateFilter stateFilter, PriorityFilter priorityFilter, int userID, int page, int size, String search) throws AccessDeniedException {
+    public enum SortField {
+        ID, TITLE, STARTDATE, PRIORITY
+    }
+
+    public Page<Task> getTasks(User requester,
+                               StateFilter stateFilter, PriorityFilter priorityFilter,
+                               int userID, int page, int size, String search,
+                               SortField sortField, Sort.Direction direction) throws AccessDeniedException {
+
         if (!requester.isAdmin() && userID != requester.getId()) {
             throw new AccessDeniedException("Only admins can get others' tasks");
         }
@@ -104,7 +113,13 @@ public class TaskService {
             size = 100;
         }
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        Sort sort = switch (sortField) {
+            case TITLE, PRIORITY -> Sort.unsorted();
+            case STARTDATE -> Sort.by(direction, "startDate").and(Sort.by(Sort.Direction.ASC, "id"));
+            case ID -> Sort.by(direction, "id");
+        };
+
+        Pageable pageable = PageRequest.of(page, size, sort);
 
         Specification<Task> spec = Specification.where(TaskSpecifications.byCreatorId(userID));
 
@@ -112,12 +127,15 @@ public class TaskService {
             Task.State state = Task.State.valueOf(stateFilter.name());
             spec = spec.and(TaskSpecifications.byState(state));
         }
-
         if (search != null && !search.isBlank()) spec = spec.and(TaskSpecifications.titleContains(search));
+        if (priorityFilter != PriorityFilter.ALL)
+            spec = spec.and(TaskSpecifications.byPriority(Task.Priority.valueOf(priorityFilter.name())));
 
-        if (priorityFilter != PriorityFilter.ALL) {
-            Task.Priority priority = Task.Priority.valueOf(priorityFilter.name());
-            spec = spec.and(TaskSpecifications.byPriority(priority));
+        if (sortField == SortField.PRIORITY) {
+            spec = spec.and(TaskSpecifications.sortByPriority(direction.isAscending()));
+        }
+        if (sortField == SortField.TITLE) {
+            spec = spec.and(TaskSpecifications.sortByTitleLower(direction.isAscending()));
         }
 
         return taskRepo.findAll(spec, pageable);

@@ -3,8 +3,15 @@ import {apiFetch} from '../api/client';
 import usePagedResource from '../hooks/usePagedResource';
 import PriorityBadge from './PriorityBadge';
 import ExpandableTitle from "./ExpandableTitle.jsx";
+import {useSearchParams} from "react-router-dom";
 
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH'];
+const SORT_OPTIONS = [
+    {value: 'id', label: 'ID'},
+    {value: 'title', label: 'Title'},
+    {value: 'startDate', label: 'Date'},
+    {value: 'priority', label: 'Priority'},
+];
 
 export default function TaskList({userId, isAdmin = false}) {
     const [title, setTitle] = useState('');
@@ -16,13 +23,20 @@ export default function TaskList({userId, isAdmin = false}) {
     const [draft, setDraft] = useState(null);
     const [saving, setSaving] = useState(false);
 
+    const [searchParams, setSearchParams] = useSearchParams();
+    const sortBy = searchParams.get('sortBy') ?? 'startDate';
+    const direction = searchParams.get('direction') ?? 'desc';
+
     const buildUrl = useCallback(({page, size, filter, search}) => {
         const base = isAdmin ? `/api/admin/users/${userId}/tasks` : '/api/tasks';
         const params = new URLSearchParams({page, size, state: filter});
         if (search) params.set('search', search);
         params.set('priority', priorityFilter);
+        params.set('sortBy', sortBy);
+        params.set('direction', direction);
+        console.log(`${base}?${params}`);
         return `${base}?${params}`;
-    }, [userId, isAdmin, priorityFilter]);
+    }, [userId, isAdmin, priorityFilter, sortBy, direction]);
 
     const {
         content: tasks, fetchError,
@@ -127,6 +141,19 @@ export default function TaskList({userId, isAdmin = false}) {
         applySearch();
     }
 
+    function handleSortChange(e) {
+        const next = new URLSearchParams(searchParams);
+        next.set('sortBy', e.target.value);
+        next.set('page', '0');
+        setSearchParams(next);
+    }
+
+    function toggleDirection() {
+        const next = new URLSearchParams(searchParams);
+        next.set("direction", direction === 'asc' ? 'desc' : 'asc');
+        setSearchParams(next);
+    }
+
     return (
         <>
             {fetchError && <p className="field-error">{fetchError}</p>}
@@ -191,6 +218,26 @@ export default function TaskList({userId, isAdmin = false}) {
                         ))}
                     </select>
                 </label>
+
+                <div className="sort-control">
+                    <label className="filter-select">
+                        Sort:
+                        <select value={sortBy} onChange={handleSortChange}>
+                            {SORT_OPTIONS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <button
+                        type="button"
+                        className="filter-button sort-direction"
+                        onClick={toggleDirection}
+                        title={direction === 'asc' ? 'Ascending — click for descending' : 'Descending — click for ascending'}
+                        aria-label={`Currently sorting ${direction === 'asc' ? 'ascending' : 'descending'}. Click to toggle.`}
+                    >
+                        {direction === 'asc' ? '↑ Asc' : '↓ Desc'}
+                    </button>
+                </div>
 
                 {totalPages > 1 && (
                     <div className="pagination">
@@ -298,7 +345,7 @@ export default function TaskList({userId, isAdmin = false}) {
                                 className={`list-item ${task.state === 'CLOSED' ? 'closed' : ''}`}
                             >
                                 <div className="list-item-info">
-                                    <ExpandableTitle text={task.title} className="list-item-title" />
+                                    <ExpandableTitle text={task.title} className="list-item-title"/>
                                     <div className="list-item-meta">
                                         <PriorityBadge priority={task.priority}/>
                                         <span>{task.startDate}</span>

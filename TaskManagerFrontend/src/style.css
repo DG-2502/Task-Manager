@@ -645,6 +645,17 @@ select {
     cursor: pointer;
 }
 
+.sort-control {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.sort-direction {
+    min-width: 76px;
+    text-align: center;
+}
+
 /* ============================================================
    Search & inline create
    ============================================================ */
