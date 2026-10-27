@@ -353,6 +353,11 @@ select {
     font-style: italic;
 }
 
+.list-loading {
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+}
+
 .empty {
     width: 100%;
     margin: 0;
@@ -525,14 +530,6 @@ select {
 /* ============================================================
    Controls (filters, pagination, page size)
    ============================================================ */
-.controls {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--space-md);
-}
 
 .filter-group {
     display: flex;
@@ -657,11 +654,72 @@ select {
 }
 
 /* ============================================================
+   Toolbar (top controls) & pagination footer (bottom)
+   ============================================================ */
+.toolbar {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.toolbar-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.toolbar-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.sort-control {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.sort-direction {
+    min-width: 76px;
+    text-align: center;
+}
+
+.pagination-footer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    margin-top: var(--space-sm);
+}
+
+/* ============================================================
    Search & inline create
    ============================================================ */
-.search-form,
 .create-form {
     width: 100%;
+    display: flex;
+    gap: var(--space-sm);
+    margin: 0;
+}
+.create-form .submit-button {
+    align-self: stretch;
+    font-size: var(--text-base);
+    padding: 0 var(--space-lg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-form {
+    flex: 1 1 240px;
     display: flex;
     gap: var(--space-sm);
     margin: 0;
@@ -842,12 +900,25 @@ select {
         justify-content: flex-end;
     }
 
-    .controls {
+    .create-form {
+        flex-direction: column;
+    }
+
+    .toolbar-row {
         flex-direction: column;
         align-items: stretch;
     }
 
-    .create-form {
+    .toolbar-controls {
+        justify-content: flex-start;
+    }
+
+    .search-form {
+        max-width: none;
+    }
+
+    .pagination-footer {
         flex-direction: column;
+        align-items: stretch;
     }
 }

@@ -2,9 +2,9 @@ import {useCallback, useState} from 'react';
 import {apiFetch} from '../api/client';
 import {useAuth} from '../auth/AuthContext';
 import usePagedResource from '../hooks/usePagedResource';
-import ExpandableTitle from "./ExpandableTitle.jsx";
+import ExpandableTitle from './ExpandableTitle';
 
-export default function UserList({onSelect, selectedId}) {
+export default function UserList({onSelect, selectedId, urlKey = null}) {
     const {user: currentUser, setUser} = useAuth();
 
     const [mutationError, setMutationError] = useState(null);
@@ -29,22 +29,22 @@ export default function UserList({onSelect, selectedId}) {
     }, []);
 
     const {
-        content: users, fetchError,
+        content: users, loading, fetchError,
         page, size, filter,
         setPage, setSize, setFilter,
         totalPages, totalElements, first, last,
         search, setSearch,
         applySearch, clearSearch,
         reload,
-    } = usePagedResource(buildUrl);
+    } = usePagedResource(buildUrl, {urlKey});
 
     async function handleDelete(id) {
+        if (!window.confirm('Delete this user? This cannot be undone.')) return;
         setMutationError(null);
         try {
             await apiFetch(`/api/admin/users/${id}`, {method: 'DELETE'});
             if (id === selectedId) onSelect(null);
             if (id === editingUserId) cancelEditUser();
-            if (totalElements % size === 1 && !first) setPage(p => p - 1);
             reload();
         } catch (err) {
             setMutationError(err.message);
@@ -149,20 +149,35 @@ export default function UserList({onSelect, selectedId}) {
     }
 
     const isSelf = u => u.id === currentUser?.id;
+    const showEmpty = !loading && users.length === 0;
 
     return (
         <>
             {fetchError && <p className="field-error">{fetchError}</p>}
             {mutationError && <p className="field-error">{mutationError}</p>}
 
-            <div className="create-user-section">
-                <button
-                    type="button"
-                    className="toggle-form-button"
-                    onClick={() => setIsFormOpen(open => !open)}
-                >
-                    {isFormOpen ? '✕ Cancel' : '+ Create a new user'}
-                </button>
+            <div className="toolbar">
+                <div className="toolbar-row">
+                    <div className="filter-group">
+                        {['ALL', 'USERS', 'ADMINS'].map(f => (
+                            <button
+                                key={f}
+                                type="button"
+                                className={`filter-button ${filter === f ? 'active' : ''}`}
+                                onClick={() => setFilter(f)}
+                            >
+                                {f.charAt(0) + f.slice(1).toLowerCase()}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        className="toggle-form-button"
+                        onClick={() => setIsFormOpen(open => !open)}
+                    >
+                        {isFormOpen ? '✕ Cancel' : '+ Create user'}
+                    </button>
+                </div>
 
                 {isFormOpen && (
                     <div className="create-user-form">
@@ -177,7 +192,7 @@ export default function UserList({onSelect, selectedId}) {
                                     onChange={e => {
                                         setError(null);
                                         setErrorField(null);
-                                        setUsername(e.target.value)
+                                        setUsername(e.target.value);
                                     }}
                                     maxLength={255}
                                     required
@@ -191,7 +206,7 @@ export default function UserList({onSelect, selectedId}) {
                                     onChange={e => {
                                         setError(null);
                                         setErrorField(null);
-                                        setPassword(e.target.value)
+                                        setPassword(e.target.value);
                                     }}
                                     required
                                 />
@@ -220,70 +235,28 @@ export default function UserList({onSelect, selectedId}) {
                         </form>
                     </div>
                 )}
-            </div>
 
-            <div className="controls">
-                <div className="filter-group">
-                    {['ALL', 'USERS', 'ADMINS'].map(f => (
-                        <button
-                            key={f}
-                            type="button"
-                            className={`filter-button ${filter === f ? 'active' : ''}`}
-                            onClick={() => {
-                                setFilter(f);
-                                setPage(0);
-                            }}
-                        >
-                            {f.charAt(0) + f.slice(1).toLowerCase()}
-                        </button>
-                    ))}
+                <div className="toolbar-row">
+                    <form onSubmit={handleSearchSubmit} className="search-form">
+                        <input
+                            type="text"
+                            placeholder="Search by username..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                        {search && (
+                            <button type="button" onClick={clearSearch}>Clear</button>
+                        )}
+                    </form>
                 </div>
-
-                {totalPages > 1 && (
-                    <div className="pagination">
-                        <button type="button" onClick={() => setPage(p => p - 1)} disabled={first}>
-                            ← Prev
-                        </button>
-                        <span className="page-info">
-                            Page {page + 1} of {totalPages}
-                            <span className="total-info"> ({totalElements} total)</span>
-                        </span>
-                        <button type="button" onClick={() => setPage(p => p + 1)} disabled={last}>
-                            Next →
-                        </button>
-                    </div>
-                )}
-
-                <label className="size-selector">
-                    Per page:
-                    <select
-                        value={size}
-                        onChange={e => {
-                            setSize(Number(e.target.value));
-                            setPage(0);
-                        }}
-                    >
-                        {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                </label>
             </div>
 
-            <form onSubmit={handleSearchSubmit} className="search-form">
-                <input
-                    type="text"
-                    placeholder="Search by username..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-                {search && (
-                    <button type="button" onClick={clearSearch}>Clear</button>
-                )}
-            </form>
-
-            {users.length === 0 ? (
+            {loading && users.length === 0 ? (
+                <p className="empty">Loading...</p>
+            ) : showEmpty ? (
                 <p className="empty">No users.</p>
             ) : (
-                <div className="list">
+                <div className={`list ${loading ? 'list-loading' : ''}`}>
                     {users.map(u => (
                         editingUserId === u.id ? (
                             <form
@@ -329,18 +302,15 @@ export default function UserList({onSelect, selectedId}) {
                                             ))}
                                         </div>
                                         {isSelf(u) && (
-                                            <span
-                                                className="edit-hint">You can't change your own role or password here</span>
+                                            <span className="edit-hint">
+                                                You can't change your own role or password here
+                                            </span>
                                         )}
                                     </div>
                                     {editError && <p className="field-error">{editError}</p>}
                                 </div>
                                 <div className="list-item-actions">
-                                    <button
-                                        type="submit"
-                                        className="action-button"
-                                        disabled={savingUser}
-                                    >
+                                    <button type="submit" className="action-button" disabled={savingUser}>
                                         {savingUser ? 'Saving...' : 'Save'}
                                     </button>
                                     <button
@@ -398,6 +368,34 @@ export default function UserList({onSelect, selectedId}) {
                             </div>
                         )
                     ))}
+                </div>
+            )}
+
+            {!showEmpty && (
+                <div className="pagination-footer">
+                    {totalPages > 1 && (
+                        <div className="pagination">
+                            <button type="button" onClick={() => setPage(p => p - 1)} disabled={first}>
+                                ← Prev
+                            </button>
+                            <span className="page-info">
+                    Page {page + 1} of {totalPages}
+                                <span className="total-info"> ({totalElements} total)</span>
+                </span>
+                            <button type="button" onClick={() => setPage(p => p + 1)} disabled={last}>
+                                Next →
+                            </button>
+                        </div>
+                    )}
+                    <label className="size-selector">
+                        Per page:
+                        <select
+                            value={size}
+                            onChange={e => setSize(Number(e.target.value))}
+                        >
+                            {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                    </label>
                 </div>
             )}
         </>
