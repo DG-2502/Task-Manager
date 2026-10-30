@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -62,6 +63,7 @@ public class TaskService {
         taskRepo.deleteById(task.getId());
     }
 
+    @Transactional
     public void deleteClosed(User requester, int userId) throws AccessDeniedException {
         if (!requester.isAdmin() && userId != requester.getId()) {
             throw new AccessDeniedException("Only admins can delete other's tasks");
@@ -112,6 +114,9 @@ public class TaskService {
         } else if (size > 100) {
             size = 100;
         }
+        if (page < 0) {
+            throw new ValidationException("page", "Page number cannot be negative");
+        }
 
         Sort sort = switch (sortField) {
             case TITLE, PRIORITY -> Sort.unsorted();
@@ -141,6 +146,7 @@ public class TaskService {
         return taskRepo.findAll(spec, pageable);
     }
 
+    @Transactional
     public void deleteTasksByUserId(int id, User requester) throws AccessDeniedException {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");

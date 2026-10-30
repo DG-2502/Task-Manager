@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 
 import java.util.Optional;
 
@@ -136,5 +137,16 @@ public class TaskServiceTest {
 
         assertEquals(Task.State.CLOSED, existingTask.getState());
         verify(taskRepo, times(1)).save(existingTask);
+    }
+
+    @Test
+    void getTasks_shouldThrow_WhenPageNumberIsNegative() {
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            taskService.getTasks(adminUser, TaskService.StateFilter.ALL, TaskService.PriorityFilter.ALL, adminUser.getId(), -1, 10, null, TaskService.SortField.ID, Sort.Direction.ASC);
+        });
+
+        assertEquals("Page number cannot be negative", exception.getMessage());
+
+        verify(taskRepo, never()).findAll();
     }
 }

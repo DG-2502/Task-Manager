@@ -155,6 +155,18 @@ public class UserServiceTest {
     }
 
     @Test
+    void register_ShouldThrow_WhenUsernameIsTooLOng() {
+        String username = "C".repeat(256);
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            userService.register(username, "valid_password", User.Status.USER);
+        });
+
+        assertEquals("Username's length cannot exceed 255 characters", exception.getMessage());
+
+        verify(userRepo, never()).save(any(User.class));
+    }
+
+    @Test
     void register_Success_WhenValidationsPass() {
         when(passwordEncoder.encode(anyString())).thenReturn("some hash");
 
@@ -283,5 +295,16 @@ public class UserServiceTest {
 
         assertEquals("newHashedPassword", normalUser.getPasswordHash());
         verify(userRepo, times(1)).save(normalUser);
+    }
+
+    @Test
+    void getUsers_shouldThrow_WhenPageNumberIsNegative() {
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+           userService.getUsers(adminUser, UserService.StatusFilter.ALL, -1, 10, null);
+        });
+
+        assertEquals("Page number cannot be negative", exception.getMessage());
+
+        verify(userRepo, never()).findAll();
     }
 }

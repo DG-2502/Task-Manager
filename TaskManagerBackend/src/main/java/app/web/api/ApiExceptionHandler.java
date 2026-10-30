@@ -65,6 +65,6 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableMessage(HttpMessageNotReadableException e, HttpServletRequest req) {
-        return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage(), null, req);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Malformed JSON request or invalid data type.", null, req);
     }
 }

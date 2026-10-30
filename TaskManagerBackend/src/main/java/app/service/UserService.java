@@ -79,6 +79,9 @@ public class UserService {
         if (!username.matches("\\w+")) {
             throw new ValidationException("username", "Username can only contain letters, digits and underscore");
         }
+        if (username.length() > 255) {
+            throw new ValidationException("username", "Username's length cannot exceed 255 characters");
+        }
     }
 
     private void validateUsernameUniqueness(String username, Integer excludedUserId) throws ValidationException {
@@ -142,7 +145,7 @@ public class UserService {
         ALL, USERS, ADMINS
     }
 
-    public Page<User> getUsers(User requester, StatusFilter statusFilter, int page, int size, String search) {
+    public Page<User> getUsers(User requester, StatusFilter statusFilter, int page, int size, String search) throws AccessDeniedException, ValidationException{
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");
         }
@@ -151,6 +154,9 @@ public class UserService {
             size = 10;
         } else if (size > 100) {
             size = 100;
+        }
+        if (page < 0) {
+            throw new ValidationException("page", "Page number cannot be negative");
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
