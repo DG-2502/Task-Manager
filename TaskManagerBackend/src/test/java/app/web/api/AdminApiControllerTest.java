@@ -29,7 +29,8 @@ import java.time.LocalDate;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AdminApiController.class)
 @Import(SecurityConfig.class)
@@ -115,11 +116,10 @@ class AdminApiControllerTest {
     }
 
     @Test
-    void deleteUser_ShouldReturn200_WhenValid() throws Exception {
+    void deleteUser_ShouldReturn204_WhenValid() throws Exception {
         mockMvc.perform(delete("/api/admin/users/5")
                         .with(authenticatedUser(testAdmin)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Deleted user with userId: 5"));
+                .andExpect(status().isNoContent());
 
         verify(userService).deleteUserById(eq(5), eq(testAdmin));
     }
@@ -136,7 +136,7 @@ class AdminApiControllerTest {
     }
 
     @Test
-    void createTask_ShouldReturn200_WhenValid() throws Exception {
+    void createTask_ShouldReturn201_WhenValid() throws Exception {
         String jsonBody = """
                 {
                     "title": "Admin Created Task",
@@ -154,7 +154,7 @@ class AdminApiControllerTest {
                         .with(authenticatedUser(testAdmin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonBody))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.title").value("Admin Created Task"))
                 .andExpect(jsonPath("$.creatorId").value(5));
@@ -180,7 +180,7 @@ class AdminApiControllerTest {
     }
 
     @Test
-    void createUser_ShouldReturn200_WhenValid() throws Exception {
+    void createUser_ShouldReturn201_WhenValid() throws Exception {
         String jsonBody = """
                 {
                     "username": "newUser",
@@ -199,7 +199,7 @@ class AdminApiControllerTest {
                         .with(authenticatedUser(testAdmin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonBody))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(20))
                 .andExpect(jsonPath("$.username").value("newUser"))
                 .andExpect(jsonPath("$.status").value("ADMIN"));

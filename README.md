@@ -6,13 +6,14 @@ A full stack application for managing your daily tasks and/or projects
 
 **Frontend:** Node.js 24, React, Vite
 
-**DevOps:** Docker, GitHub Actions (CI/CD pipeline)
+**DevOps:** Docker, GitHub Actions (CI/CD pipeline), OpenAPI/Swagger
 
 ## Features
 - Full CRUD operations with filtering/pagination
 - Admin panel for admins to manage users and their tasks
 - Authentication by JWT with role based access 
 - Database versions and migration is managed by Flyway
+- OpenAPI documentation implemented with Swagger
 
 # HOW TO RUN
 

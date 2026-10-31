@@ -35,15 +35,11 @@ export async function apiFetch(path, options = {}) {
         let message = `Request failed: ${response.status}`;
         let field = null;
 
-        const text = await response.text();
-        if (text) {
-            try {
-                const body = JSON.parse(text);
-                if (body.message) message = body.message;
-                if (body.field) field = body.field;
-            } catch {
-                message = text;
-            }
+        try {
+            const body = await response.json();
+            if (body.message) message = body.message;
+            if (body.field) field = body.field;
+        } catch {
         }
 
         const error = new Error(message);
@@ -59,9 +55,9 @@ export async function apiFetch(path, options = {}) {
         throw error;
     }
 
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        return response.json();
+    if (response.status === 204) {
+        return null;
     }
-    return response.text();
+
+    return response.json();
 }

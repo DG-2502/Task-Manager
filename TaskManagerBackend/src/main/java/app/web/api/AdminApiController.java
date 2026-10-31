@@ -9,17 +9,25 @@ import app.web.dto.request.task.TaskQueryRequest;
 import app.web.dto.request.user.CreateUserRequest;
 import app.web.dto.request.user.UpdateUserRequest;
 import app.web.dto.request.user.UserQueryRequest;
+import app.web.dto.response.MessageResponse;
 import app.web.dto.response.PageResponse;
 import app.web.dto.response.TaskResponse;
 import app.web.dto.response.UserResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin")
+@Tag(name = "Admin", description = "Endpoints for administrators to manage users and their tasks")
+@RequestMapping(value = "/api/admin", produces = MediaType.APPLICATION_JSON_VALUE)
 public class AdminApiController {
     private final TaskService taskService;
     private final UserService userService;
@@ -29,6 +37,13 @@ public class AdminApiController {
         this.userService = userService;
     }
 
+    @Operation(summary = "Get all users", description = "Retrieves a paginated list of all users, with optional filtering by status and search by username.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
     @GetMapping("/users")
     public PageResponse<UserResponse> getUsers(@Valid @ModelAttribute UserQueryRequest query,
                                                @AuthenticationPrincipal User admin) {
@@ -36,6 +51,13 @@ public class AdminApiController {
         return PageResponse.from(users, UserResponse::from);
     }
 
+    @Operation(summary = "Get tasks of a specific user", description = "Allows an admin to view a paginated list of tasks belonging to any user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tasks retrieved successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
     @GetMapping("/users/{id}/tasks")
     public PageResponse<TaskResponse> getTasks(@PathVariable int id,
                                                @Valid @ModelAttribute TaskQueryRequest query,
@@ -44,32 +66,62 @@ public class AdminApiController {
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
+    @Operation(summary = "Delete a user", description = "Permanently deletes a user and all their associated tasks. Admins cannot delete themselves.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "User deleted successfully"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
     @DeleteMapping("/users/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable int userId, @AuthenticationPrincipal User admin) {
+    public ResponseEntity<Void> deleteUser(@PathVariable int userId, @AuthenticationPrincipal User admin) {
         userService.deleteUserById(userId, admin);
-        return ResponseEntity.ok("Deleted user with userId: " + userId);
+        return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Create a task for a user", description = "Allows an admin to create a task on behalf of any specific user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Task created successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
     @PostMapping("/users/{userId}/tasks")
-    public TaskResponse createTask(@PathVariable int userId, @AuthenticationPrincipal User admin, @Valid @RequestBody CreateTaskRequest body) {
+    public ResponseEntity<TaskResponse> createTask(@PathVariable int userId, @AuthenticationPrincipal User admin, @Valid @RequestBody CreateTaskRequest body) {
         Task task = taskService.createTask(admin, userId, body.title(), body.priority());
-        return TaskResponse.from(task);
+        return ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.from(task));
     }
 
+    @Operation(summary = "Create a new user", description = "Allows an admin to create a new user with a specific role (ADMIN or USER).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "User created successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
     @PostMapping("/users")
-    public UserResponse createUser(@AuthenticationPrincipal User admin, @Valid @RequestBody CreateUserRequest body) {
+    public ResponseEntity<UserResponse> createUser(@AuthenticationPrincipal User admin, @Valid @RequestBody CreateUserRequest body) {
         User user = userService.createNewUser(admin, body.username(), body.password(), body.status());
-        return UserResponse.from(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.from(user));
     }
 
+    @Operation(summary = "Update a user", description = "Allows an admin to update a user's username, role, or reset their password. Admins cannot demote themselves.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User updated successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
     @PatchMapping("/users/{userId}")
-    public ResponseEntity<?> updateUser(@PathVariable int userId, @AuthenticationPrincipal User admin, @Valid @RequestBody UpdateUserRequest body) {
+    public MessageResponse updateUser(@PathVariable int userId, @AuthenticationPrincipal User admin, @Valid @RequestBody UpdateUserRequest body) {
         userService.update(admin, userId, body.username(), body.status());
 
         if (body.password() != null && !body.password().isBlank()) {
             userService.changePassword(admin, userId, null, body.password());
         }
 
-        return ResponseEntity.ok("Updated user with id: " + userId);
+        return new MessageResponse("Updated user with id: " + userId);
     }
 }

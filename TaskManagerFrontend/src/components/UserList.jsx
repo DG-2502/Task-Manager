@@ -23,7 +23,8 @@ export default function UserList({onSelect, selectedId, urlKey = null}) {
     const [editErrorField, setEditErrorField] = useState(null);
 
     const buildUrl = useCallback(({page, size, filter, search}) => {
-        const params = new URLSearchParams({page, size, status: filter});
+        const params = new URLSearchParams({page, size});
+        if (filter !== 'ALL') params.set('status', filter);
         if (search) params.set('search', search);
         return `/api/admin/users?${params}`;
     }, []);

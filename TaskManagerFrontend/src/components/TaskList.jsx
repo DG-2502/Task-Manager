@@ -65,7 +65,8 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
 
     const buildUrl = useCallback(({page, size, filter, search}) => {
         const base = isAdmin ? `/api/admin/users/${userId}/tasks` : '/api/tasks';
-        const params = new URLSearchParams({page, size, state: filter});
+        const params = new URLSearchParams({page, size});
+        if (filter !== 'ALL') params.set('state', filter);
         if (search) params.set('search', search);
         if (priorityFilter !== 'ALL') params.set('priority', priorityFilter);
         params.set('sortBy', sortBy);

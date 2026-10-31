@@ -22,7 +22,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserApiController.class)
 @Import(SecurityConfig.class)
@@ -99,14 +100,31 @@ class UserApiControllerTest {
     }
 
     @Test
-    void logout_ShouldReturn200() throws Exception {
-        mockMvc.perform(post("/api/users/logout"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Logged out"));
+    void login_ShouldReturn400_WhenUsernameIsBlank() throws Exception {
+        String jsonBody = """
+                {
+                    "username": "",
+                    "password": "password123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("username"))
+                .andExpect(jsonPath("$.message").value("Username is required"));
     }
 
     @Test
-    void register_ShouldReturn200_WhenRequestIsValid() throws Exception {
+    void logout_ShouldReturn200() throws Exception {
+        mockMvc.perform(post("/api/users/logout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logged out"));
+    }
+
+    @Test
+    void register_ShouldReturn201_WhenRequestIsValid() throws Exception {
         String jsonBody = """
                 {
                     "username": "newUser",
@@ -120,8 +138,8 @@ class UserApiControllerTest {
         mockMvc.perform(post("/api/users/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonBody))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Registered"));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.message").value("Registered"));
 
         verify(userService).register("newUser", "password123", User.Status.USER);
     }
@@ -206,7 +224,7 @@ class UserApiControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonBody))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Updated profile"));
+                .andExpect(jsonPath("$.message").value("Updated profile"));
 
         verify(userService).update(eq(testUser), eq(1), eq("updatedUser"), isNull());
     }
@@ -244,7 +262,7 @@ class UserApiControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonBody))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Password changed successfully"));
+                .andExpect(jsonPath("$.message").value("Password changed successfully"));
 
         verify(userService).changePassword(eq(testUser), eq(1), eq("oldPassword"), eq("newValidPassword"));
     }

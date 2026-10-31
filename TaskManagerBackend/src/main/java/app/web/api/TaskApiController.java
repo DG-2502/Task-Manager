@@ -6,16 +6,24 @@ import app.service.TaskService;
 import app.web.dto.request.task.CreateTaskRequest;
 import app.web.dto.request.task.TaskQueryRequest;
 import app.web.dto.request.task.UpdateTaskRequest;
+import app.web.dto.response.MessageResponse;
 import app.web.dto.response.PageResponse;
 import app.web.dto.response.TaskResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/tasks")
+@Tag(name = "Tasks", description = "Endpoints for managing tasks")
+@RequestMapping(value = "/api/tasks", produces = MediaType.APPLICATION_JSON_VALUE)
 public class TaskApiController {
     private final TaskService taskService;
 
@@ -23,6 +31,12 @@ public class TaskApiController {
         this.taskService = taskService;
     }
 
+    @Operation(summary = "Get my tasks", description = "Retrieves a paginated, filtered, and sorted list of tasks belonging to the authenticated user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved the list of tasks"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized")
+    })
     @GetMapping("")
     public PageResponse<TaskResponse> myTasks(@Valid @ModelAttribute TaskQueryRequest query,
                                               @AuthenticationPrincipal User me) {
@@ -30,33 +44,64 @@ public class TaskApiController {
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
+    @Operation(summary = "Create a new task", description = "Creates a new task for the authenticated user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Task created successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized")
+    })
     @PostMapping("")
-    public TaskResponse createTask(@AuthenticationPrincipal User me, @Valid @RequestBody CreateTaskRequest body) {
+    public ResponseEntity<TaskResponse> createTask(@AuthenticationPrincipal User me, @Valid @RequestBody CreateTaskRequest body) {
         Task task = taskService.createTask(me, me.getId(), body.title(), body.priority());
-        return TaskResponse.from(task);
+        return ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.from(task));
     }
 
+    @Operation(summary = "Close a task", description = "Marks a specific task as CLOSED. Users can only close their own tasks.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Task closed successfully"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
     @PostMapping("/{id}/close")
-    public ResponseEntity<?> closeTask(@PathVariable int id, @AuthenticationPrincipal User me) {
+    public MessageResponse closeTask(@PathVariable int id, @AuthenticationPrincipal User me) {
         taskService.closeTask(id, me);
-        return ResponseEntity.ok("Closed task with id: " + id);
+        return new MessageResponse("Closed task with id: " + id);
     }
 
+    @Operation(summary = "Reopen a task", description = "Marks a specific task as ACTIVE. Users can only reopen their own tasks.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Task reopened successfully"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
     @PostMapping("/{id}/open")
-    public ResponseEntity<?> reopenTask(@PathVariable int id, @AuthenticationPrincipal User me) {
+    public MessageResponse reopenTask(@PathVariable int id, @AuthenticationPrincipal User me) {
         taskService.updateTask(me, id, null, Task.State.ACTIVE, null);
-        return ResponseEntity.ok("Opened task with id: " + id);
+        return new MessageResponse("Opened task with id: " + id);
     }
 
+    @Operation(summary = "Delete a task", description = "Permanently deletes a specific task. Users can only delete their own tasks.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Task deleted successfully"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteTask(@PathVariable int id, @AuthenticationPrincipal User me) {
+    public ResponseEntity<Void> deleteTask(@PathVariable int id, @AuthenticationPrincipal User me) {
         taskService.deleteTask(me, id);
-        return ResponseEntity.ok("Deleted task with id: " + id);
+        return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Update a task", description = "Partially updates a task's title, state, or priority. Users can only update their own tasks.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Task updated successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
     @PatchMapping("/{id}")
-    public ResponseEntity<?> updateTask(@PathVariable int id, @AuthenticationPrincipal User me, @Valid @RequestBody UpdateTaskRequest body) {
+    public MessageResponse updateTask(@PathVariable int id, @AuthenticationPrincipal User me, @Valid @RequestBody UpdateTaskRequest body) {
         taskService.updateTask(me, id, body.title(), body.state(), body.priority());
-        return ResponseEntity.ok("Updated task with id: " + id);
+        return new MessageResponse("Updated task with id: " + id);
     }
 }
