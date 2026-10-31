@@ -9,6 +9,7 @@ import app.exception.ValidationException;
 import app.repo.TaskRepository;
 import app.repo.TaskSpecifications;
 import app.repo.UserRepository;
+import app.web.dto.request.task.TaskQueryRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,8 +34,6 @@ public class TaskService {
         if (!requester.isAdmin() && userId != requester.getId()) {
             throw new AccessDeniedException("Only admins can create tasks for another user");
         }
-
-        validateTitle(title);
 
         User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
@@ -79,7 +78,6 @@ public class TaskService {
         }
 
         if (newTitle != null) {
-            validateTitle(newTitle);
             task.setTitle(newTitle);
         }
         if (state != null) task.setState(state);
@@ -88,59 +86,36 @@ public class TaskService {
         taskRepo.save(task);
     }
 
-    public enum StateFilter {
-        ALL, ACTIVE, CLOSED
-    }
-
-    public enum PriorityFilter {
-        ALL, LOW, MEDIUM, HIGH
-    }
-
-    public enum SortField {
-        ID, TITLE, STARTDATE, PRIORITY
-    }
-
-    public Page<Task> getTasks(User requester,
-                               StateFilter stateFilter, PriorityFilter priorityFilter,
-                               int userID, int page, int size, String search,
-                               SortField sortField, Sort.Direction direction) throws AccessDeniedException {
-
+    public Page<Task> getTasks(User requester, int userID, TaskQueryRequest query) throws AccessDeniedException {
         if (!requester.isAdmin() && userID != requester.getId()) {
             throw new AccessDeniedException("Only admins can get others' tasks");
         }
 
-        if (size <= 0) {
-            size = 10;
-        } else if (size > 100) {
-            size = 100;
-        }
-        if (page < 0) {
-            throw new ValidationException("page", "Page number cannot be negative");
-        }
+        Sort.Direction direction = query.direction();
 
-        Sort sort = switch (sortField) {
+        Sort sort = switch (query.sortBy()) {
             case TITLE, PRIORITY -> Sort.unsorted();
             case STARTDATE -> Sort.by(direction, "startDate").and(Sort.by(Sort.Direction.ASC, "id"));
             case ID -> Sort.by(direction, "id");
         };
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable = PageRequest.of(query.page(), query.size(), sort);
 
         Specification<Task> spec = Specification.where(TaskSpecifications.byCreatorId(userID));
 
-        if (stateFilter != StateFilter.ALL) {
-            Task.State state = Task.State.valueOf(stateFilter.name());
-            spec = spec.and(TaskSpecifications.byState(state));
+        if (query.state() != null) {
+            spec = spec.and(TaskSpecifications.byState(query.state()));
         }
-        if (search != null && !search.isBlank()) spec = spec.and(TaskSpecifications.titleContains(search));
-        if (priorityFilter != PriorityFilter.ALL)
-            spec = spec.and(TaskSpecifications.byPriority(Task.Priority.valueOf(priorityFilter.name())));
+        if (query.search() != null && !query.search().isBlank()) {
+            spec = spec.and(TaskSpecifications.titleContains(query.search()));
+        }
+        if (query.priority() != null) {
+            spec = spec.and(TaskSpecifications.byPriority(query.priority()));
+        }
 
-        if (sortField == SortField.PRIORITY) {
-            spec = spec.and(TaskSpecifications.sortByPriority(direction.isAscending()));
-        }
-        if (sortField == SortField.TITLE) {
-            spec = spec.and(TaskSpecifications.sortByTitleLower(direction.isAscending()));
+        switch (query.sortBy()) {
+            case PRIORITY -> spec = spec.and(TaskSpecifications.sortByPriority(direction.isAscending()));
+            case TITLE -> spec = spec.and(TaskSpecifications.sortByTitleLower(direction.isAscending()));
         }
 
         return taskRepo.findAll(spec, pageable);
@@ -163,15 +138,5 @@ public class TaskService {
         }
 
         return task;
-    }
-
-    private void validateTitle(String title) throws ValidationException {
-        if (title == null || title.isBlank()) {
-            throw new ValidationException("title", "Title must not be empty");
-        }
-
-        if (title.length() > 255) {
-            throw new ValidationException("title", "Title's length cannot exceed 255 characters");
-        }
     }
 }

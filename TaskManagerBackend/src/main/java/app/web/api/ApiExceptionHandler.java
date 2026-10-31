@@ -5,9 +5,12 @@ import app.web.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -66,5 +69,27 @@ public class ApiExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableMessage(HttpMessageNotReadableException e, HttpServletRequest req) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Malformed JSON request or invalid data type.", null, req);
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException e, HttpServletRequest req) {
+        return buildResponse(HttpStatus.CONFLICT, "Database constraint violation. Data may be too long or already exist.", null, req);
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ErrorResponse> handleBindException(BindException e, HttpServletRequest req) {
+        FieldError fieldError = e.getBindingResult().getFieldError();
+        String field = fieldError != null ? fieldError.getField() : null;
+        String message = "Validation failed";
+
+        if (fieldError != null) {
+            if ("typeMismatch".equals(fieldError.getCode())) {
+                Object rejected = fieldError.getRejectedValue();
+                message = "Invalid value: " + rejected + " for parameter: " + field;
+            } else {
+                message = fieldError.getDefaultMessage();
+            }
+        }
+        return buildResponse(HttpStatus.BAD_REQUEST, message, field, req);
     }
 }

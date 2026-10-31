@@ -4,11 +4,12 @@ import app.domain.Task;
 import app.domain.User;
 import app.service.TaskService;
 import app.web.dto.request.task.CreateTaskRequest;
+import app.web.dto.request.task.TaskQueryRequest;
 import app.web.dto.request.task.UpdateTaskRequest;
 import app.web.dto.response.PageResponse;
 import app.web.dto.response.TaskResponse;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,25 +24,14 @@ public class TaskApiController {
     }
 
     @GetMapping("")
-    public PageResponse<TaskResponse> myTasks(@RequestParam(defaultValue = "0") int page,
-                                              @RequestParam(defaultValue = "10") int size,
-                                              @RequestParam(defaultValue = "ALL") String state,
-                                              @RequestParam(required = false) String search,
-                                              @RequestParam(defaultValue = "ALL") String priority,
-                                              @RequestParam(defaultValue = "ID") String sortBy,
-                                              @RequestParam(defaultValue = "ASC") String direction,
+    public PageResponse<TaskResponse> myTasks(@Valid @ModelAttribute TaskQueryRequest query,
                                               @AuthenticationPrincipal User me) {
-        TaskService.StateFilter stateFilter = TaskService.StateFilter.valueOf(state.toUpperCase());
-        TaskService.PriorityFilter priorityFilter = TaskService.PriorityFilter.valueOf(priority.toUpperCase());
-        TaskService.SortField sortField = TaskService.SortField.valueOf(sortBy.toUpperCase());
-        Sort.Direction direction1 = Sort.Direction.valueOf(direction.toUpperCase());
-
-        Page<Task> taskPage = taskService.getTasks(me, stateFilter, priorityFilter, me.getId(), page, size, search, sortField, direction1);
+        Page<Task> taskPage = taskService.getTasks(me, me.getId(), query);
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
     @PostMapping("")
-    public TaskResponse createTask(@AuthenticationPrincipal User me, @RequestBody CreateTaskRequest body) {
+    public TaskResponse createTask(@AuthenticationPrincipal User me, @Valid @RequestBody CreateTaskRequest body) {
         Task task = taskService.createTask(me, me.getId(), body.title(), body.priority());
         return TaskResponse.from(task);
     }
@@ -65,7 +55,7 @@ public class TaskApiController {
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<?> updateTask(@PathVariable int id, @AuthenticationPrincipal User me, @RequestBody UpdateTaskRequest body) {
+    public ResponseEntity<?> updateTask(@PathVariable int id, @AuthenticationPrincipal User me, @Valid @RequestBody UpdateTaskRequest body) {
         taskService.updateTask(me, id, body.title(), body.state(), body.priority());
         return ResponseEntity.ok("Updated task with id: " + id);
     }

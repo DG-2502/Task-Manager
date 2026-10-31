@@ -4,16 +4,19 @@ import app.domain.Task;
 import app.domain.User;
 import app.exception.AccessDeniedException;
 import app.exception.TaskNotFoundException;
-import app.exception.ValidationException;
+import app.exception.UserNotFoundException;
 import app.repo.TaskRepository;
 import app.repo.UserRepository;
+import app.web.dto.request.task.TaskQueryRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Optional;
 
@@ -81,30 +84,16 @@ public class TaskServiceTest {
         verify(taskRepo, times(1)).save(any(Task.class));
     }
 
-
     @Test
-    void createTask_ShouldThrow_WhenTitleIsEmpty() {
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            taskService.createTask(normalUser, normalUser.getId(), "", Task.Priority.MEDIUM);
-        });
+    void createTask_ShouldThrowUserNotFound_WhenTargetUserDoesNotExist() {
+        when(userRepo.findById(anyInt())).thenReturn(Optional.empty());
 
-        assertEquals("Title must not be empty", exception.getMessage());
+        assertThrows(UserNotFoundException.class, () -> {
+            taskService.createTask(adminUser, 999, "Task", Task.Priority.HIGH);
+        });
 
         verify(taskRepo, never()).save(any(Task.class));
     }
-
-    @Test
-    void createTask_shouldThrow_WhenTitleIsTooLong() {
-        String title = "C".repeat(256);
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            taskService.createTask(normalUser, normalUser.getId(), title, Task.Priority.MEDIUM);
-        });
-
-        assertEquals("Title's length cannot exceed 255 characters", exception.getMessage());
-
-        verify(taskRepo, never()).save(any(Task.class));
-    }
-
 
     @Test
     void closeTask_ShouldThrowNotFound_WhenTaskDoesNotExist() {
@@ -140,13 +129,103 @@ public class TaskServiceTest {
     }
 
     @Test
-    void getTasks_shouldThrow_WhenPageNumberIsNegative() {
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            taskService.getTasks(adminUser, TaskService.StateFilter.ALL, TaskService.PriorityFilter.ALL, adminUser.getId(), -1, 10, null, TaskService.SortField.ID, Sort.Direction.ASC);
+    void getTasks_ShouldThrowAccessDenied_WhenUserRequestsOthersTasks() {
+        TaskQueryRequest query = new TaskQueryRequest(0, 10, null, null, null, null, null);
+
+        assertThrows(AccessDeniedException.class, () -> {
+            taskService.getTasks(normalUser, 999, query); // normalUser trying to get user 999's tasks
         });
 
-        assertEquals("Page number cannot be negative", exception.getMessage());
+        verify(taskRepo, never()).findAll(any(Specification.class), any(Pageable.class));
+    }
 
-        verify(taskRepo, never()).findAll();
+    @Test
+    void getTasks_ShouldReturnPage_WhenUserRequestsOwnTasks() {
+        TaskQueryRequest query = new TaskQueryRequest(0, 10, null, null, null, null, null);
+        when(taskRepo.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        Page<Task> result = taskService.getTasks(normalUser, normalUser.getId(), query);
+
+        assertNotNull(result);
+        verify(taskRepo).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void getById_ShouldThrowNotFound_WhenTaskDoesNotExist() {
+        when(taskRepo.findById(999)).thenReturn(Optional.empty());
+
+        assertThrows(TaskNotFoundException.class, () -> {
+            taskService.getById(999, normalUser);
+        });
+    }
+
+    @Test
+    void getById_ShouldThrowNotFound_WhenUserDoesNotOwnTask() {
+        when(taskRepo.findById(existingTask.getId())).thenReturn(Optional.of(existingTask));
+
+        User attacker = new User("attacker", User.Status.USER, "hash");
+        attacker.setId(3);
+
+        assertThrows(TaskNotFoundException.class, () -> {
+            taskService.getById(existingTask.getId(), attacker);
+        });
+    }
+
+    @Test
+    void getById_ShouldReturnTask_WhenAdminRequests() {
+        when(taskRepo.findById(existingTask.getId())).thenReturn(Optional.of(existingTask));
+
+        Task result = taskService.getById(existingTask.getId(), adminUser);
+        assertEquals(existingTask, result);
+    }
+
+    @Test
+    void deleteTask_ShouldThrowNotFound_WhenUserDoesNotOwnTask() {
+        when(taskRepo.findById(existingTask.getId())).thenReturn(Optional.of(existingTask));
+
+        User attacker = new User("attacker", User.Status.USER, "hash");
+        attacker.setId(3);
+
+        assertThrows(TaskNotFoundException.class, () -> {
+            taskService.deleteTask(attacker, existingTask.getId());
+        });
+
+        verify(taskRepo, never()).deleteById(anyInt());
+    }
+
+    @Test
+    void deleteTask_ShouldDelete_WhenOwnerDeletes() {
+        when(taskRepo.findById(existingTask.getId())).thenReturn(Optional.of(existingTask));
+
+        taskService.deleteTask(normalUser, existingTask.getId());
+
+        verify(taskRepo).deleteById(existingTask.getId());
+    }
+
+    @Test
+    void deleteClosed_ShouldThrowAccessDenied_WhenUserIsNotAdminAndDeletesOthersTasks() {
+        assertThrows(AccessDeniedException.class, () -> {
+            taskService.deleteClosed(normalUser, 33);
+        });
+        verify(taskRepo, never()).deleteByCreatorIdAndState(33, Task.State.CLOSED);
+    }
+
+    @Test
+    void deleteClosed_ShouldCallRepo_WhenAdmin() {
+        taskService.deleteClosed(adminUser, 5);
+        verify(taskRepo).deleteByCreatorIdAndState(5, Task.State.CLOSED);
+    }
+
+    @Test
+    void deleteTasksByUserId_ShouldThrowAccessDenied_WhenUserIsNotAdmin() {
+        assertThrows(AccessDeniedException.class, () -> {
+            taskService.deleteTasksByUserId(5, normalUser);
+        });
+    }
+
+    @Test
+    void deleteTasksByUserId_ShouldCallRepo_WhenAdmin() {
+        taskService.deleteTasksByUserId(5, adminUser);
+        verify(taskRepo).deleteByCreatorId(5);
     }
 }

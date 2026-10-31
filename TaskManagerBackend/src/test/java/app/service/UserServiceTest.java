@@ -3,8 +3,10 @@ package app.service;
 import app.domain.User;
 import app.exception.AccessDeniedException;
 import app.exception.AuthenticationException;
+import app.exception.UserNotFoundException;
 import app.exception.ValidationException;
 import app.repo.UserRepository;
+import app.web.dto.request.user.UserQueryRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,6 +14,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -89,61 +94,6 @@ public class UserServiceTest {
     }
 
     @Test
-    void register_ShouldThrow_WhenPasswordIsEmpty() {
-        String emptyPassword = "";
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.register("some user", emptyPassword, User.Status.USER);
-        });
-
-        assertEquals("Password is required", exception.getMessage());
-    }
-
-    @Test
-    void register_ShouldThrow_WhenPasswordDoesMatchRegex() {
-        String invalidPassword = "@mypassword";
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.register("some user", invalidPassword, User.Status.USER);
-        });
-
-        assertEquals("Password can only contain letters, digits and underscore", exception.getMessage());
-    }
-
-    @Test
-    void register_ShouldThrow_WhenPasswordIsLessThanThreeCharacters() {
-        String shortPassword = "12";
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.register("some user", shortPassword, User.Status.USER);
-        });
-
-        assertEquals("Password should be at least 3 characters long", exception.getMessage());
-    }
-
-    @Test
-    void register_ShouldThrow_WhenUsernameIsEmpty() {
-        String emptyUsername = "";
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.register(emptyUsername, "valid_password", User.Status.USER);
-        });
-
-        assertEquals("Username is required", exception.getMessage());
-    }
-
-    @Test
-    void register_ShouldThrow_WhenUsernameDoesMatchRegex() {
-        String invalidUsername = "@mypassword";
-
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.register(invalidUsername, "valid_password", User.Status.USER);
-        });
-
-        assertEquals("Username can only contain letters, digits and underscore", exception.getMessage());
-    }
-
-    @Test
     void register_ShouldThrow_WhenUsernameIsAlreadyTaken() {
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.of(normalUser));
 
@@ -152,18 +102,6 @@ public class UserServiceTest {
         });
 
         assertEquals("Username: " + normalUser.getUsername() + " is already taken", exception.getMessage());
-    }
-
-    @Test
-    void register_ShouldThrow_WhenUsernameIsTooLOng() {
-        String username = "C".repeat(256);
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.register(username, "valid_password", User.Status.USER);
-        });
-
-        assertEquals("Username's length cannot exceed 255 characters", exception.getMessage());
-
-        verify(userRepo, never()).save(any(User.class));
     }
 
     @Test
@@ -265,16 +203,6 @@ public class UserServiceTest {
     }
 
     @Test
-    void changePassword_ShouldThrow_WhenNewPasswordIsInvalid() {
-        when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
-        when(passwordEncoder.matches("correctPassword", normalUser.getPasswordHash())).thenReturn(true);
-
-        assertThrows(ValidationException.class, () -> {
-            userService.changePassword(normalUser, normalUser.getId(), "correctPassword", "12");
-        });
-    }
-
-    @Test
     void changePassword_ShouldSucceed_WhenUserChangesTheirOwnPassword() {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
         when(passwordEncoder.matches("correctPassword", normalUser.getPasswordHash())).thenReturn(true);
@@ -298,13 +226,100 @@ public class UserServiceTest {
     }
 
     @Test
-    void getUsers_shouldThrow_WhenPageNumberIsNegative() {
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-           userService.getUsers(adminUser, UserService.StatusFilter.ALL, -1, 10, null);
+    void createNewUser_ShouldThrowAccessDenied_WhenRequesterIsNotAdmin() {
+        assertThrows(AccessDeniedException.class, () -> {
+            userService.createNewUser(normalUser, "newUser", "password", User.Status.USER);
         });
 
-        assertEquals("Page number cannot be negative", exception.getMessage());
+        verify(userRepo, never()).save(any(User.class));
+    }
 
-        verify(userRepo, never()).findAll();
+    @Test
+    void createNewUser_ShouldCallRegister_WhenRequesterIsAdmin() {
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+
+        userService.createNewUser(adminUser, "newUser", "password", User.Status.USER);
+
+        verify(userRepo, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void getUsers_ShouldThrowAccessDenied_WhenRequesterIsNotAdmin() {
+        UserQueryRequest query = new UserQueryRequest(0, 10, null, null);
+
+        assertThrows(AccessDeniedException.class, () -> {
+            userService.getUsers(normalUser, query);
+        });
+
+        verify(userRepo, never()).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void getUsers_ShouldReturnPage_WhenRequesterIsAdmin() {
+        UserQueryRequest query = new UserQueryRequest(0, 10, null, null);
+        when(userRepo.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        Page<User> result = userService.getUsers(adminUser, query);
+
+        assertNotNull(result);
+        verify(userRepo).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void deleteUserById_ShouldThrowAccessDenied_WhenRequesterIsNotAdmin() {
+        assertThrows(AccessDeniedException.class, () -> {
+            userService.deleteUserById(otherUser.getId(), normalUser);
+        });
+
+        verify(userRepo, never()).deleteById(anyInt());
+    }
+
+    @Test
+    void deleteUserById_ShouldThrowAccessDenied_WhenAdminDeletesThemselves() {
+        assertThrows(AccessDeniedException.class, () -> {
+            userService.deleteUserById(adminUser.getId(), adminUser);
+        });
+
+        verify(userRepo, never()).deleteById(anyInt());
+    }
+
+    @Test
+    void deleteUserById_ShouldDelete_WhenAdminDeletesOtherUser() {
+        userService.deleteUserById(otherUser.getId(), adminUser);
+        verify(userRepo).deleteById(otherUser.getId());
+    }
+
+    @Test
+    void getById_ShouldThrowNotFound_WhenUserDoesNotExist() {
+        when(userRepo.findById(999)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> {
+            userService.getById(999, adminUser);
+        });
+    }
+
+    @Test
+    void getById_ShouldThrowNotFound_WhenNonAdminRequestsOtherUser() {
+        when(userRepo.findById(otherUser.getId())).thenReturn(Optional.of(otherUser));
+
+        assertThrows(UserNotFoundException.class, () -> {
+            userService.getById(otherUser.getId(), normalUser);
+        });
+    }
+
+    @Test
+    void getById_ShouldReturnUser_WhenAdminRequestsOtherUser() {
+        when(userRepo.findById(otherUser.getId())).thenReturn(Optional.of(otherUser));
+
+        User result = userService.getById(otherUser.getId(), adminUser);
+        assertEquals(otherUser, result);
+    }
+
+    @Test
+    void getById_ShouldReturnUser_WhenUserRequestsThemselves() {
+        when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
+
+        User result = userService.getById(normalUser.getId(), normalUser);
+        assertEquals(normalUser, result);
     }
 }

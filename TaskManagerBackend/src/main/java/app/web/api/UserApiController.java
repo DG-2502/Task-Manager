@@ -8,6 +8,7 @@ import app.web.dto.request.user.ChangePasswordRequest;
 import app.web.dto.request.user.RegisterRequest;
 import app.web.dto.request.user.UpdateProfileRequest;
 import app.web.dto.response.UserResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +40,7 @@ public class UserApiController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest body) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest body) {
         String password = body.password();
         String passwordConfirm = body.passwordConfirm();
         if (password == null || !password.equals(passwordConfirm)) {
@@ -59,13 +60,13 @@ public class UserApiController {
     }
 
     @PatchMapping("/me")
-    public ResponseEntity<?> update(@AuthenticationPrincipal User me, @RequestBody UpdateProfileRequest body) {
+    public ResponseEntity<?> update(@AuthenticationPrincipal User me, @Valid @RequestBody UpdateProfileRequest body) {
         userService.update(me, me.getId(), body.username(), null);
         return ResponseEntity.ok("Updated profile");
     }
 
     @PatchMapping("/password")
-    public ResponseEntity<?> changePassword(@AuthenticationPrincipal User me, @RequestBody ChangePasswordRequest body) {
+    public ResponseEntity<?> changePassword(@AuthenticationPrincipal User me, @Valid @RequestBody ChangePasswordRequest body) {
         userService.changePassword(me, me.getId(), body.currentPassword(), body.newPassword());
 
         return ResponseEntity.ok("Password changed successfully");

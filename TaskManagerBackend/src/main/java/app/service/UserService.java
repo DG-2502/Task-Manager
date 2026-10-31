@@ -7,6 +7,7 @@ import app.exception.UserNotFoundException;
 import app.exception.ValidationException;
 import app.repo.UserRepository;
 import app.repo.UserSpecifications;
+import app.web.dto.request.user.UserQueryRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,8 +43,6 @@ public class UserService {
     }
 
     public User register(String username, String password, User.Status status) throws ValidationException {
-        validatePassword(password);
-        validateUsernameFormat(username);
         validateUsernameUniqueness(username, null);
 
         String passwordHash = passwordEncoder.encode(password);
@@ -58,30 +57,6 @@ public class UserService {
         }
 
         return register(username, password, status);
-    }
-
-    private void validatePassword(String password) throws ValidationException {
-        if (password == null || password.isBlank()) {
-            throw new ValidationException("password", "Password is required");
-        }
-        if (!password.matches("\\w+")) {
-            throw new ValidationException("password", "Password can only contain letters, digits and underscore");
-        }
-        if (password.length() < 3) {
-            throw new ValidationException("password", "Password should be at least 3 characters long");
-        }
-    }
-
-    private void validateUsernameFormat(String username) throws ValidationException {
-        if (username == null || username.isBlank()) {
-            throw new ValidationException("username", "Username is required");
-        }
-        if (!username.matches("\\w+")) {
-            throw new ValidationException("username", "Username can only contain letters, digits and underscore");
-        }
-        if (username.length() > 255) {
-            throw new ValidationException("username", "Username's length cannot exceed 255 characters");
-        }
     }
 
     private void validateUsernameUniqueness(String username, Integer excludedUserId) throws ValidationException {
@@ -113,7 +88,6 @@ public class UserService {
         }
 
         if (newUsername != null && !newUsername.equals(user.getUsername())) {
-            validateUsernameFormat(newUsername);
             validateUsernameUniqueness(newUsername, userId);
             user.setUsername(newUsername);
         }
@@ -135,36 +109,24 @@ public class UserService {
             }
         }
 
-        validatePassword(newPassword);
-
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepo.save(user);
     }
 
-    public enum StatusFilter {
-        ALL, USERS, ADMINS
-    }
-
-    public Page<User> getUsers(User requester, StatusFilter statusFilter, int page, int size, String search) throws AccessDeniedException, ValidationException{
+    public Page<User> getUsers(User requester, UserQueryRequest query) throws AccessDeniedException, ValidationException {
         if (!requester.isAdmin()) {
             throw new AccessDeniedException("Only admins can do that");
         }
 
-        if (size <= 0) {
-            size = 10;
-        } else if (size > 100) {
-            size = 100;
-        }
-        if (page < 0) {
-            throw new ValidationException("page", "Page number cannot be negative");
-        }
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        Pageable pageable = PageRequest.of(query.page(), query.size(), Sort.by("id").ascending());
 
         Specification<User> spec = Specification.unrestricted();
-        if (statusFilter == StatusFilter.USERS) spec = spec.and(UserSpecifications.byStatus(User.Status.USER));
-        if (statusFilter == StatusFilter.ADMINS) spec = spec.and(UserSpecifications.byStatus(User.Status.ADMIN));
-        if (search != null && !search.isBlank()) spec = spec.and(UserSpecifications.usernameContains(search));
+
+        if (query.status() != null) {
+            spec = spec.and(UserSpecifications.byStatus(query.status()));
+        }
+        if (query.search() != null && !query.search().isBlank())
+            spec = spec.and(UserSpecifications.usernameContains(query.search()));
 
         return userRepo.findAll(spec, pageable);
     }
