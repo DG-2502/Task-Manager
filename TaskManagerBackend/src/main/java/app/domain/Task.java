@@ -28,6 +28,8 @@ public class Task {
     @Column(nullable = false)
     private Priority priority;
 
+    @Column(name = "group_id")
+    private Integer groupId;
 
     public enum State {
         CLOSED, ACTIVE
@@ -40,12 +42,13 @@ public class Task {
     protected Task() {
     }
 
-    public Task(String title, LocalDate startDate, State state, int creatorId, Priority priority) {
+    public Task(String title, LocalDate startDate, State state, int creatorId, Priority priority, Integer groupId) {
         this.title = title;
         this.startDate = startDate;
         this.state = state;
         this.creatorId = creatorId;
         this.priority = priority;
+        this.groupId = groupId;
     }
 
     @Override
@@ -99,5 +102,13 @@ public class Task {
 
     public void setPriority(Priority priority) {
         this.priority = priority;
+    }
+
+    public Integer getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Integer groupId) {
+        this.groupId = groupId;
     }
 }

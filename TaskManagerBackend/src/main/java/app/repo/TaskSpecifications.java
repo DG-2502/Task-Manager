@@ -54,11 +54,36 @@ public final class TaskSpecifications {
             Order primarySort = isAscending
                     ? criteriaBuilder.asc(criteriaBuilder.lower(root.get("title")))
                     : criteriaBuilder.desc(criteriaBuilder.lower(root.get("title")));
-            
+
             Order tieBreaker = criteriaBuilder.asc(root.get("id"));
 
             query.orderBy(List.of(primarySort, tieBreaker));
 
+            return criteriaBuilder.conjunction();
+        };
+    }
+
+    public static Specification<Task> sortByStartDate(boolean isAscending) {
+        return ((root, query, criteriaBuilder) -> {
+            Order primarySort = isAscending
+                    ? criteriaBuilder.asc(root.get("startDate"))
+                    : criteriaBuilder.desc(root.get("startDate"));
+
+            Order tieBreaker = criteriaBuilder.asc(root.get("id"));
+
+            query.orderBy(List.of(primarySort, tieBreaker));
+
+            return criteriaBuilder.conjunction();
+        });
+    }
+
+    public static Specification<Task> sortById(boolean isAscending) {
+        return (root, query, criteriaBuilder) -> {
+            Order primarySort = isAscending
+                    ? criteriaBuilder.asc(root.get("id"))
+                    : criteriaBuilder.desc(root.get("id"));
+
+            query.orderBy(List.of(primarySort));
             return criteriaBuilder.conjunction();
         };
     }

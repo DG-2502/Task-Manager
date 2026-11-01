@@ -3,7 +3,6 @@ package app.service;
 import app.domain.User;
 import app.exception.AccessDeniedException;
 import app.exception.AuthenticationException;
-import app.exception.UserNotFoundException;
 import app.exception.ValidationException;
 import app.repo.UserRepository;
 import app.web.dto.request.user.UserQueryRequest;
@@ -56,52 +55,45 @@ public class UserServiceTest {
     void login_ShouldThrow_WhenUsernameDoesNotExist() {
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.empty());
 
-        AuthenticationException exception = assertThrows(AuthenticationException.class, () -> {
-            userService.login(normalUser.getUsername(), "password");
-        });
+        AuthenticationException exception = assertThrows(AuthenticationException.class, () ->
+                userService.login(normalUser.getUsername(), "password"));
 
         assertEquals("The username or password is incorrect", exception.getMessage());
     }
 
     @Test
     void login_ShouldThrow_WhenPasswordIsIncorrect() {
-        String fakePassword = "fakePassword";
-
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.of(normalUser));
-        when(passwordEncoder.matches(fakePassword, normalUser.getPasswordHash())).thenReturn(false);
+        when(passwordEncoder.matches("fakePassword", normalUser.getPasswordHash())).thenReturn(false);
 
-        AuthenticationException exception = assertThrows(AuthenticationException.class, () -> {
-            userService.login(normalUser.getUsername(), fakePassword);
-        });
+        AuthenticationException exception = assertThrows(AuthenticationException.class, () ->
+                userService.login(normalUser.getUsername(), "fakePassword"));
 
         assertEquals("The username or password is incorrect", exception.getMessage());
     }
 
     @Test
     void login_ShouldReturnUser_WhenUsernameAndPasswordAreCorrect() {
-        String truePassword = "truePassword";
-
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.of(normalUser));
-        when(passwordEncoder.matches(truePassword, normalUser.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches("truePassword", normalUser.getPasswordHash())).thenReturn(true);
 
-        User returnedUser = userService.login(normalUser.getUsername(), truePassword);
+        User returnedUser = userService.login(normalUser.getUsername(), "truePassword");
 
         assertNotNull(returnedUser);
-        assertEquals(returnedUser.getId(), normalUser.getId());
-        assertEquals(returnedUser.getUsername(), normalUser.getUsername());
-        assertEquals(returnedUser.getPasswordHash(), normalUser.getPasswordHash());
-        assertEquals(returnedUser.getStatus(), normalUser.getStatus());
+        assertEquals(normalUser.getId(), returnedUser.getId());
+        assertEquals(normalUser.getUsername(), returnedUser.getUsername());
+        assertEquals(normalUser.getStatus(), returnedUser.getStatus());
     }
 
     @Test
     void register_ShouldThrow_WhenUsernameIsAlreadyTaken() {
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.of(normalUser));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.register(normalUser.getUsername(), "valid_password", User.Status.USER);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () ->
+                userService.register(normalUser.getUsername(), "valid_password", User.Status.USER));
 
         assertEquals("Username: " + normalUser.getUsername() + " is already taken", exception.getMessage());
+        verify(userRepo, never()).save(any(User.class));
     }
 
     @Test
@@ -119,34 +111,46 @@ public class UserServiceTest {
         assertEquals(User.Status.USER, savedUser.getStatus());
     }
 
+    @Test
+    void register_WithAdminStatus_ShouldSucceed() {
+        when(passwordEncoder.encode(anyString())).thenReturn("adminHash");
+
+        userService.register("new_admin", "secret", User.Status.ADMIN);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepo).save(captor.capture());
+        assertEquals(User.Status.ADMIN, captor.getValue().getStatus());
+    }
 
     @Test
     void update_ShouldThrow_WhenNonAdminUpdatesAnotherUser() {
         when(userRepo.findById(otherUser.getId())).thenReturn(Optional.of(otherUser));
 
-        assertThrows(AccessDeniedException.class, () -> {
-            userService.update(normalUser, otherUser.getId(), "newName", null);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                userService.update(normalUser, otherUser.getId(), "newName", null));
+
+        verify(userRepo, never()).save(any(User.class));
     }
 
     @Test
     void update_ShouldThrow_WhenNonAdminTriesToChangeStatus() {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
 
-        assertThrows(AccessDeniedException.class, () -> {
-            userService.update(normalUser, normalUser.getId(), null, User.Status.ADMIN);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                userService.update(normalUser, normalUser.getId(), null, User.Status.ADMIN));
+
+        verify(userRepo, never()).save(any(User.class));
     }
 
     @Test
     void update_ShouldThrow_WhenAdminTriesToDemoteHimself() {
         when(userRepo.findById(adminUser.getId())).thenReturn(Optional.of(adminUser));
 
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> {
-            userService.update(adminUser, adminUser.getId(), null, User.Status.USER);
-        });
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () ->
+                userService.update(adminUser, adminUser.getId(), null, User.Status.USER));
 
         assertEquals("Admins cannot change themselves to users", exception.getMessage());
+        verify(userRepo, never()).save(any(User.class));
     }
 
     @Test
@@ -154,12 +158,23 @@ public class UserServiceTest {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
         when(userRepo.getByUsername(otherUser.getUsername())).thenReturn(Optional.of(otherUser));
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            userService.update(normalUser, normalUser.getId(), otherUser.getUsername(), null);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () ->
+                userService.update(normalUser, normalUser.getId(), otherUser.getUsername(), null));
 
         assertEquals("Username: " + otherUser.getUsername() + " is already taken", exception.getMessage());
         verify(userRepo, never()).save(any(User.class));
+    }
+
+    @Test
+    void update_ShouldSucceed_WhenNonAdminUpdatesOwnUsername() {
+        when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
+        when(userRepo.getByUsername("newName")).thenReturn(Optional.empty());
+
+        userService.update(normalUser, normalUser.getId(), "newName", null);
+
+        assertEquals("newName", normalUser.getUsername());
+        assertEquals(User.Status.USER, normalUser.getStatus());
+        verify(userRepo).save(normalUser);
     }
 
     @Test
@@ -182,12 +197,22 @@ public class UserServiceTest {
         verify(userRepo, times(1)).save(normalUser);
     }
 
+    @Test
+    void update_ShouldSucceed_WhenAdminKeepsOwnAdminStatus() {
+        when(userRepo.findById(adminUser.getId())).thenReturn(Optional.of(adminUser));
+
+        userService.update(adminUser, adminUser.getId(), null, User.Status.ADMIN);
+
+        assertEquals(User.Status.ADMIN, adminUser.getStatus());
+        verify(userRepo).save(adminUser);
+    }
 
     @Test
     void changePassword_ShouldThrow_WhenNonAdminChangesOthersPassword() {
-        assertThrows(AccessDeniedException.class, () -> {
-            userService.changePassword(normalUser, otherUser.getId(), "current", "newPassword");
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                userService.changePassword(normalUser, otherUser.getId(), "current", "newPassword"));
+
+        verify(userRepo, never()).save(any(User.class));
     }
 
     @Test
@@ -195,9 +220,8 @@ public class UserServiceTest {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
         when(passwordEncoder.matches("wrongPassword", normalUser.getPasswordHash())).thenReturn(false);
 
-        assertThrows(AuthenticationException.class, () -> {
-            userService.changePassword(normalUser, normalUser.getId(), "wrongPassword", "newPassword");
-        });
+        assertThrows(AuthenticationException.class, () ->
+                userService.changePassword(normalUser, normalUser.getId(), "wrongPassword", "newPassword"));
 
         verify(userRepo, never()).save(any(User.class));
     }
@@ -226,10 +250,22 @@ public class UserServiceTest {
     }
 
     @Test
+    void changePassword_ShouldSucceed_WhenAdminChangesAnotherAdminPassword() {
+        User otherAdmin = new User("admin2", User.Status.ADMIN, "otherHash");
+        otherAdmin.setId(5);
+        when(userRepo.findById(otherAdmin.getId())).thenReturn(Optional.of(otherAdmin));
+        when(passwordEncoder.encode("newValidPassword")).thenReturn("newHashedPassword");
+
+        userService.changePassword(adminUser, otherAdmin.getId(), null, "newValidPassword");
+
+        assertEquals("newHashedPassword", otherAdmin.getPasswordHash());
+        verify(userRepo).save(otherAdmin);
+    }
+
+    @Test
     void createNewUser_ShouldThrowAccessDenied_WhenRequesterIsNotAdmin() {
-        assertThrows(AccessDeniedException.class, () -> {
-            userService.createNewUser(normalUser, "newUser", "password", User.Status.USER);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                userService.createNewUser(normalUser, "newUser", "password", User.Status.USER));
 
         verify(userRepo, never()).save(any(User.class));
     }
@@ -247,9 +283,8 @@ public class UserServiceTest {
     void getUsers_ShouldThrowAccessDenied_WhenRequesterIsNotAdmin() {
         UserQueryRequest query = new UserQueryRequest(0, 10, null, null);
 
-        assertThrows(AccessDeniedException.class, () -> {
-            userService.getUsers(normalUser, query);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                userService.getUsers(normalUser, query));
 
         verify(userRepo, never()).findAll(any(Specification.class), any(Pageable.class));
     }
@@ -267,59 +302,33 @@ public class UserServiceTest {
 
     @Test
     void deleteUserById_ShouldThrowAccessDenied_WhenRequesterIsNotAdmin() {
-        assertThrows(AccessDeniedException.class, () -> {
-            userService.deleteUserById(otherUser.getId(), normalUser);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                userService.deleteUserById(normalUser, otherUser.getId()));
 
         verify(userRepo, never()).deleteById(anyInt());
     }
 
     @Test
     void deleteUserById_ShouldThrowAccessDenied_WhenAdminDeletesThemselves() {
-        assertThrows(AccessDeniedException.class, () -> {
-            userService.deleteUserById(adminUser.getId(), adminUser);
-        });
+        assertThrows(AccessDeniedException.class, () ->
+                userService.deleteUserById(adminUser, adminUser.getId()));
 
         verify(userRepo, never()).deleteById(anyInt());
     }
 
     @Test
     void deleteUserById_ShouldDelete_WhenAdminDeletesOtherUser() {
-        userService.deleteUserById(otherUser.getId(), adminUser);
+        userService.deleteUserById(adminUser, otherUser.getId());
         verify(userRepo).deleteById(otherUser.getId());
     }
 
     @Test
-    void getById_ShouldThrowNotFound_WhenUserDoesNotExist() {
-        when(userRepo.findById(999)).thenReturn(Optional.empty());
+    void deleteUserById_ShouldDelete_WhenAdminDeletesAnotherAdmin() {
+        User otherAdmin = new User("admin2", User.Status.ADMIN, "hash");
+        otherAdmin.setId(5);
 
-        assertThrows(UserNotFoundException.class, () -> {
-            userService.getById(999, adminUser);
-        });
-    }
+        userService.deleteUserById(adminUser, otherAdmin.getId());
 
-    @Test
-    void getById_ShouldThrowNotFound_WhenNonAdminRequestsOtherUser() {
-        when(userRepo.findById(otherUser.getId())).thenReturn(Optional.of(otherUser));
-
-        assertThrows(UserNotFoundException.class, () -> {
-            userService.getById(otherUser.getId(), normalUser);
-        });
-    }
-
-    @Test
-    void getById_ShouldReturnUser_WhenAdminRequestsOtherUser() {
-        when(userRepo.findById(otherUser.getId())).thenReturn(Optional.of(otherUser));
-
-        User result = userService.getById(otherUser.getId(), adminUser);
-        assertEquals(otherUser, result);
-    }
-
-    @Test
-    void getById_ShouldReturnUser_WhenUserRequestsThemselves() {
-        when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
-
-        User result = userService.getById(normalUser.getId(), normalUser);
-        assertEquals(normalUser, result);
+        verify(userRepo).deleteById(otherAdmin.getId());
     }
 }

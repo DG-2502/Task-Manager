@@ -52,7 +52,7 @@ public class TaskApiController {
     })
     @PostMapping("")
     public ResponseEntity<TaskResponse> createTask(@AuthenticationPrincipal User me, @Valid @RequestBody CreateTaskRequest body) {
-        Task task = taskService.createTask(me, me.getId(), body.title(), body.priority());
+        Task task = taskService.createTask(me, me.getId(), body);
         return ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.from(task));
     }
 
@@ -64,7 +64,7 @@ public class TaskApiController {
     })
     @PostMapping("/{id}/close")
     public MessageResponse closeTask(@PathVariable int id, @AuthenticationPrincipal User me) {
-        taskService.closeTask(id, me);
+        taskService.closeTask(me, id);
         return new MessageResponse("Closed task with id: " + id);
     }
 
@@ -76,7 +76,7 @@ public class TaskApiController {
     })
     @PostMapping("/{id}/open")
     public MessageResponse reopenTask(@PathVariable int id, @AuthenticationPrincipal User me) {
-        taskService.updateTask(me, id, null, Task.State.ACTIVE, null);
+        taskService.reopenTask(me, id);
         return new MessageResponse("Opened task with id: " + id);
     }
 
@@ -92,7 +92,7 @@ public class TaskApiController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Update a task", description = "Partially updates a task's title, state, or priority. Users can only update their own tasks.")
+    @Operation(summary = "Update a task", description = "Partially updates a task's title or priority. Users can only update their own tasks.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Task updated successfully"),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
@@ -101,7 +101,31 @@ public class TaskApiController {
     })
     @PatchMapping("/{id}")
     public MessageResponse updateTask(@PathVariable int id, @AuthenticationPrincipal User me, @Valid @RequestBody UpdateTaskRequest body) {
-        taskService.updateTask(me, id, body.title(), body.state(), body.priority());
+        taskService.updateTask(me, id, body);
         return new MessageResponse("Updated task with id: " + id);
+    }
+
+    @Operation(summary = "Ungroup a task", description = "Sets the group of a task to null. Users can only ungroup their own tasks.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Task ungrouped successfully"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @PostMapping("/{id}/ungroup")
+    public MessageResponse ungroupTask(@PathVariable int id, @AuthenticationPrincipal User me) {
+        taskService.ungroupTask(me, id);
+        return new MessageResponse("Ungrouped task with id: " + id);
+    }
+
+    @Operation(summary = "Set group of a task", description = "Change the group of a task to an existing group. Users can only change group of their own tasks.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Set group successfully"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @PostMapping("/{taskId}/group/{groupId}")
+    public MessageResponse setGroup(@PathVariable int taskId, @PathVariable int groupId, @AuthenticationPrincipal User me) {
+        taskService.setGroup(me, taskId, groupId);
+        return new MessageResponse("Set group of task with id: " + taskId + " to: " + groupId);
     }
 }

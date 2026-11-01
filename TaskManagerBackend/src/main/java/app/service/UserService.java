@@ -52,9 +52,7 @@ public class UserService {
     }
 
     public User createNewUser(User requester, String username, String password, User.Status status) throws AccessDeniedException, ValidationException {
-        if (!requester.isAdmin()) {
-            throw new AccessDeniedException("Only admins can create new users");
-        }
+        verifyAdminAccess(requester, -1, "Only admins can create new users");
 
         return register(username, password, status);
     }
@@ -97,9 +95,7 @@ public class UserService {
     }
 
     public void changePassword(User requester, int userId, String password, String newPassword) throws AccessDeniedException, AuthenticationException, ValidationException, UserNotFoundException {
-        if (!requester.isAdmin() && requester.getId() != userId) {
-            throw new AccessDeniedException("Only admins can change others' password");
-        }
+        verifyAdminAccess(requester, userId, "Only admins can change others' password");
 
         User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
@@ -114,9 +110,7 @@ public class UserService {
     }
 
     public Page<User> getUsers(User requester, UserQueryRequest query) throws AccessDeniedException, ValidationException {
-        if (!requester.isAdmin()) {
-            throw new AccessDeniedException("Only admins can do that");
-        }
+        verifyAdminAccess(requester, -1, "Only admins can do that");
 
         Pageable pageable = PageRequest.of(query.page(), query.size(), Sort.by("id").ascending());
 
@@ -131,23 +125,18 @@ public class UserService {
         return userRepo.findAll(spec, pageable);
     }
 
-    public void deleteUserById(int id, User requester) throws AccessDeniedException {
-        if (!requester.isAdmin()) {
-            throw new AccessDeniedException("Only admins can do that");
-        }
-        if (id == requester.getId()) {
+    public void deleteUserById(User requester, int userId) throws AccessDeniedException {
+        verifyAdminAccess(requester, -1, "Only admins can delete other users");
+
+        if (userId == requester.getId()) {
             throw new AccessDeniedException("Admins cannot delete themselves");
         }
-        userRepo.deleteById(id);
+        userRepo.deleteById(userId);
     }
 
-    public User getById(int id, User requester) throws UserNotFoundException {
-        User user = userRepo.findById(id).orElseThrow(() -> new UserNotFoundException(id));
-
-        if (!requester.isAdmin() && user.getId() != requester.getId()) {
-            throw new UserNotFoundException(id);
+    private void verifyAdminAccess(User requester, int userId, String message) throws AccessDeniedException {
+        if (!requester.isAdmin() && requester.getId() != userId) {
+            throw new AccessDeniedException(message);
         }
-
-        return user;
     }
 }

@@ -49,7 +49,7 @@ public class ApiExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, e.getMessage(), null, req);
     }
 
-    @ExceptionHandler({TaskNotFoundException.class, UserNotFoundException.class})
+    @ExceptionHandler({TaskNotFoundException.class, UserNotFoundException.class, GroupNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException e, HttpServletRequest req) {
         return buildResponse(HttpStatus.NOT_FOUND, e.getMessage(), null, req);
     }

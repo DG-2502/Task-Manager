@@ -1,17 +1,23 @@
 package app.web.api;
 
+import app.domain.Group;
 import app.domain.Task;
 import app.domain.User;
 import app.exception.AccessDeniedException;
 import app.exception.UserNotFoundException;
 import app.exception.ValidationException;
 import app.repo.UserRepository;
+import app.service.GroupService;
 import app.service.JwtService;
 import app.service.TaskService;
 import app.service.UserService;
 import app.web.config.SecurityConfig;
+import app.web.dto.request.group.CreateGroupRequest;
+import app.web.dto.request.group.GroupQueryRequest;
+import app.web.dto.request.task.CreateTaskRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -26,6 +32,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -36,7 +43,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AdminApiControllerTest {
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -45,6 +51,9 @@ class AdminApiControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private GroupService groupService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -116,18 +125,39 @@ class AdminApiControllerTest {
     }
 
     @Test
+    void getGroups_ShouldReturn200_WhenAdmin() throws Exception {
+        when(groupService.getGroups(any(User.class), anyInt(), any(GroupQueryRequest.class)))
+                .thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/admin/users/1/groups")
+                        .with(authenticatedUser(testAdmin)))
+                .andExpect(status().isOk());
+
+        verify(groupService).getGroups(eq(testAdmin), eq(1), any(GroupQueryRequest.class));
+    }
+
+    @Test
+    void getGroups_ShouldReturn400_WhenPageIsNegative() throws Exception {
+        mockMvc.perform(get("/api/admin/users/1/groups?page=-1")
+                        .with(authenticatedUser(testAdmin)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("page"))
+                .andExpect(jsonPath("$.message").value("Page cannot be negative"));
+    }
+
+    @Test
     void deleteUser_ShouldReturn204_WhenValid() throws Exception {
         mockMvc.perform(delete("/api/admin/users/5")
                         .with(authenticatedUser(testAdmin)))
                 .andExpect(status().isNoContent());
 
-        verify(userService).deleteUserById(eq(5), eq(testAdmin));
+        verify(userService).deleteUserById(eq(testAdmin), eq(5));
     }
 
     @Test
     void deleteUser_ShouldReturn403_WhenServiceThrowsAccessDenied() throws Exception {
         doThrow(new AccessDeniedException("Admins cannot delete themselves"))
-                .when(userService).deleteUserById(eq(99), any());
+                .when(userService).deleteUserById(any(), eq(99));
 
         mockMvc.perform(delete("/api/admin/users/99")
                         .with(authenticatedUser(testAdmin)))
@@ -140,14 +170,15 @@ class AdminApiControllerTest {
         String jsonBody = """
                 {
                     "title": "Admin Created Task",
-                    "priority": "HIGH"
+                    "priority": "HIGH",
+                    "groupId": 10
                 }
                 """;
 
-        Task mockTask = new Task("Admin Created Task", LocalDate.now(), Task.State.ACTIVE, 5, Task.Priority.HIGH);
+        Task mockTask = new Task("Admin Created Task", LocalDate.now(), Task.State.ACTIVE, 5, Task.Priority.HIGH, 10);
         mockTask.setId(10);
 
-        when(taskService.createTask(any(User.class), eq(5), eq("Admin Created Task"), eq(Task.Priority.HIGH)))
+        when(taskService.createTask(any(User.class), eq(5), any(CreateTaskRequest.class)))
                 .thenReturn(mockTask);
 
         mockMvc.perform(post("/api/admin/users/5/tasks")
@@ -157,7 +188,13 @@ class AdminApiControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.title").value("Admin Created Task"))
-                .andExpect(jsonPath("$.creatorId").value(5));
+                .andExpect(jsonPath("$.creatorId").value(5))
+                .andExpect(jsonPath("$.groupId").value(10));
+
+        ArgumentCaptor<CreateTaskRequest> captor = ArgumentCaptor.forClass(CreateTaskRequest.class);
+        verify(taskService).createTask(eq(testAdmin), eq(5), captor.capture());
+        assertEquals("Admin Created Task", captor.getValue().title());
+        assertEquals(10, captor.getValue().groupId());
     }
 
     @Test
@@ -176,7 +213,73 @@ class AdminApiControllerTest {
                 .andExpect(jsonPath("$.field").value("title"))
                 .andExpect(jsonPath("$.message").value("Title cannot be blank or empty"));
 
-        verify(taskService, never()).createTask(any(), anyInt(), anyString(), any());
+        verify(taskService, never()).createTask(any(), anyInt(), any());
+    }
+
+    @Test
+    void createGroup_ShouldReturn201_WhenValid() throws Exception {
+        String jsonBody = """
+                {
+                    "title": "Admin Created Group"
+                }
+                """;
+
+        Group mockGroup = new Group("Admin Created Group", 5);
+        mockGroup.setId(20);
+
+        when(groupService.createGroup(any(User.class), eq(5), any(CreateGroupRequest.class)))
+                .thenReturn(mockGroup);
+
+        mockMvc.perform(post("/api/admin/users/5/groups")
+                        .with(authenticatedUser(testAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(20))
+                .andExpect(jsonPath("$.title").value("Admin Created Group"))
+                .andExpect(jsonPath("$.creatorId").value(5));
+
+        ArgumentCaptor<CreateGroupRequest> captor = ArgumentCaptor.forClass(CreateGroupRequest.class);
+        verify(groupService).createGroup(eq(testAdmin), eq(5), captor.capture());
+        assertEquals("Admin Created Group", captor.getValue().title());
+    }
+
+    @Test
+    void createGroup_ShouldReturn400_WhenTitleIsBlank() throws Exception {
+        String jsonBody = """
+                {
+                    "title": "   "
+                }
+                """;
+
+        mockMvc.perform(post("/api/admin/users/5/groups")
+                        .with(authenticatedUser(testAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("title"))
+                .andExpect(jsonPath("$.message").value("Title is required"));
+
+        verify(groupService, never()).createGroup(any(), anyInt(), any());
+    }
+
+    @Test
+    void createGroup_ShouldReturn404_WhenUserDoesNotExist() throws Exception {
+        String jsonBody = """
+                {
+                    "title": "Admin Created Group"
+                }
+                """;
+
+        doThrow(new UserNotFoundException(5))
+                .when(groupService).createGroup(any(), eq(5), any());
+
+        mockMvc.perform(post("/api/admin/users/5/groups")
+                        .with(authenticatedUser(testAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User with ID: 5 was not found!"));
     }
 
     @Test
@@ -317,5 +420,46 @@ class AdminApiControllerTest {
                         .content(jsonBody))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User with ID: 5 was not found!"));
+    }
+
+    @Test
+    void updateUser_ShouldReturn403_WhenAdminTriesToDemoteSelf() throws Exception {
+        String jsonBody = """
+                {
+                    "status": "USER"
+                }
+                """;
+
+        doThrow(new AccessDeniedException("Admins cannot change themselves to users"))
+                .when(userService).update(any(), eq(99), any(), eq(User.Status.USER));
+
+        mockMvc.perform(patch("/api/admin/users/99")
+                        .with(authenticatedUser(testAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Admins cannot change themselves to users"));
+
+        verify(userService, never()).changePassword(any(), anyInt(), any(), any());
+    }
+
+    @Test
+    void updateUser_ShouldReturn400_WhenUsernameTaken() throws Exception {
+        String jsonBody = """
+                {
+                    "username": "takenName"
+                }
+                """;
+
+        doThrow(new ValidationException("username", "Username: takenName is already taken"))
+                .when(userService).update(any(), eq(5), eq("takenName"), any());
+
+        mockMvc.perform(patch("/api/admin/users/5")
+                        .with(authenticatedUser(testAdmin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("username"))
+                .andExpect(jsonPath("$.message").value("Username: takenName is already taken"));
     }
 }

@@ -1,18 +1,19 @@
 package app.web.api;
 
 import app.domain.Task;
+import app.domain.Group;
 import app.domain.User;
+import app.service.GroupService;
 import app.service.TaskService;
 import app.service.UserService;
+import app.web.dto.request.group.CreateGroupRequest;
+import app.web.dto.request.group.GroupQueryRequest;
 import app.web.dto.request.task.CreateTaskRequest;
 import app.web.dto.request.task.TaskQueryRequest;
 import app.web.dto.request.user.CreateUserRequest;
 import app.web.dto.request.user.UpdateUserRequest;
 import app.web.dto.request.user.UserQueryRequest;
-import app.web.dto.response.MessageResponse;
-import app.web.dto.response.PageResponse;
-import app.web.dto.response.TaskResponse;
-import app.web.dto.response.UserResponse;
+import app.web.dto.response.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -31,10 +32,12 @@ import org.springframework.web.bind.annotation.*;
 public class AdminApiController {
     private final TaskService taskService;
     private final UserService userService;
+    private final GroupService groupService;
 
-    public AdminApiController(TaskService taskService, UserService userService) {
+    public AdminApiController(TaskService taskService, UserService userService, GroupService groupService) {
         this.taskService = taskService;
         this.userService = userService;
+        this.groupService = groupService;
     }
 
     @Operation(summary = "Get all users", description = "Retrieves a paginated list of all users, with optional filtering by status and search by username.")
@@ -66,6 +69,21 @@ public class AdminApiController {
         return PageResponse.from(taskPage, TaskResponse::from);
     }
 
+    @Operation(summary = "Get groups of a specific user", description = "Allows an admin to view a paginated list of groups belonging to any user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Groups retrieved successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
+    @GetMapping("/users/{id}/groups")
+    public PageResponse<GroupResponse> getGroups(@PathVariable int id,
+                                                 @Valid @ModelAttribute GroupQueryRequest query,
+                                                 @AuthenticationPrincipal User admin) {
+        Page<Group> groupPage = groupService.getGroups(admin, id, query);
+        return PageResponse.from(groupPage, GroupResponse::from);
+    }
+
     @Operation(summary = "Delete a user", description = "Permanently deletes a user and all their associated tasks. Admins cannot delete themselves.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "User deleted successfully"),
@@ -75,7 +93,7 @@ public class AdminApiController {
     })
     @DeleteMapping("/users/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable int userId, @AuthenticationPrincipal User admin) {
-        userService.deleteUserById(userId, admin);
+        userService.deleteUserById(admin, userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -89,8 +107,22 @@ public class AdminApiController {
     })
     @PostMapping("/users/{userId}/tasks")
     public ResponseEntity<TaskResponse> createTask(@PathVariable int userId, @AuthenticationPrincipal User admin, @Valid @RequestBody CreateTaskRequest body) {
-        Task task = taskService.createTask(admin, userId, body.title(), body.priority());
+        Task task = taskService.createTask(admin, userId, body);
         return ResponseEntity.status(HttpStatus.CREATED).body(TaskResponse.from(task));
+    }
+
+    @Operation(summary = "Create a group for a user", description = "Allows an admin to create a group on behalf of any specific user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Group created successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @PostMapping("/users/{userId}/groups")
+    public ResponseEntity<GroupResponse> createGroup(@PathVariable int userId, @AuthenticationPrincipal User admin, @Valid @RequestBody CreateGroupRequest body) {
+        Group group = groupService.createGroup(admin, userId, body);
+        return ResponseEntity.status(HttpStatus.CREATED).body(GroupResponse.from(group));
     }
 
     @Operation(summary = "Create a new user", description = "Allows an admin to create a new user with a specific role (ADMIN or USER).")

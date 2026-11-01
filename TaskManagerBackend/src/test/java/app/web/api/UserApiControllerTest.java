@@ -29,7 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
 class UserApiControllerTest {
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -165,6 +164,25 @@ class UserApiControllerTest {
     }
 
     @Test
+    void register_ShouldReturn400_WhenPasswordConfirmIsMissing() throws Exception {
+        String jsonBody = """
+                {
+                    "username": "newUser",
+                    "password": "password123"
+                }
+                """;
+
+        mockMvc.perform(post("/api/users/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("passwordConfirm"))
+                .andExpect(jsonPath("$.message").value("Passwords do not match"));
+
+        verify(userService, never()).register(anyString(), anyString(), any());
+    }
+
+    @Test
     void register_ShouldReturn400_WhenPasswordIsTooShort() throws Exception {
         String jsonBody = """
                 {
@@ -199,7 +217,6 @@ class UserApiControllerTest {
                 .andExpect(jsonPath("$.field").value("username"))
                 .andExpect(jsonPath("$.message").value("Username can only contain letters, digits and underscore"));
     }
-
 
     @Test
     void me_ShouldReturn200AndUser() throws Exception {
@@ -247,6 +264,22 @@ class UserApiControllerTest {
                 .andExpect(jsonPath("$.message").value("Username is too long"));
     }
 
+    @Test
+    void updateProfile_ShouldReturn400_WhenUsernameHasSpecialChars() throws Exception {
+        String jsonBody = """
+                {
+                    "username": "new@user"
+                }
+                """;
+
+        mockMvc.perform(patch("/api/users/me")
+                        .with(authenticatedUser(testUser))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("username"))
+                .andExpect(jsonPath("$.message").value("Username can only contain letters, digits and underscore"));
+    }
 
     @Test
     void changePassword_ShouldReturn200_WhenRequestIsValid() throws Exception {

@@ -8,7 +8,8 @@ public record CreateTaskRequest(
         @NotBlank(message = "Title cannot be blank or empty")
         @Size(max = 255, message = "Title is too long")
         String title,
-        Task.Priority priority
+        Task.Priority priority,
+        Integer groupId
 ) {
     public CreateTaskRequest {
         if (priority == null) {
