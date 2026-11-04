@@ -73,11 +73,11 @@ public class GroupService {
         groupRepo.save(group);
     }
 
-    private Group getGroupOrThrowNotFound(User requester, int taskId) throws GroupNotFoundException {
-        Group group = groupRepo.findById(taskId).orElseThrow(() -> new GroupNotFoundException(taskId));
+    private Group getGroupOrThrowNotFound(User requester, int groupId) throws GroupNotFoundException {
+        Group group = groupRepo.findById(groupId).orElseThrow(() -> new GroupNotFoundException(groupId));
 
         if (!requester.isAdmin() && group.getCreatorId() != requester.getId()) {
-            throw new GroupNotFoundException(taskId);
+            throw new GroupNotFoundException(groupId);
         }
 
         return group;

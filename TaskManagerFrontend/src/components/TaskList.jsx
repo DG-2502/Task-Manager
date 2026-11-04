@@ -23,7 +23,14 @@ function formatDate(value) {
     return d.toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
 }
 
-export default function TaskList({userId, isAdmin = false, urlKey = null}) {
+export default function TaskList({
+                                     userId,
+                                     isAdmin = false,
+                                     urlKey = null,
+                                     groupId = null,
+                                     groups = null,
+                                     externalRefreshKey = 0,
+                                 }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const prefix = urlKey ? `${urlKey}.` : '';
 
@@ -69,10 +76,12 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
         if (filter !== 'ALL') params.set('state', filter);
         if (search) params.set('search', search);
         if (priorityFilter !== 'ALL') params.set('priority', priorityFilter);
+        if (groupId === 'ungrouped') params.set('ungrouped', 'true');
+        else if (groupId != null && groupId !== 'all') params.set('groupId', groupId);
         params.set('sortBy', sortBy);
         params.set('direction', direction);
         return `${base}?${params}`;
-    }, [userId, isAdmin, priorityFilter, sortBy, direction]);
+    }, [userId, isAdmin, priorityFilter, sortBy, direction, groupId]);
 
     const {
         content: tasks, loading, fetchError,
@@ -82,7 +91,7 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
         search, setSearch,
         applySearch, clearSearch,
         reload,
-    } = usePagedResource(buildUrl, {urlKey});
+    } = usePagedResource(buildUrl, {urlKey, externalRefreshKey});
 
     async function runMutation(fn) {
         setMutationError(null);
@@ -104,6 +113,14 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
         if (!window.confirm('Delete this task? This cannot be undone.')) return;
         runMutation(() => apiFetch(`/api/tasks/${id}`, {method: 'DELETE'}));
     };
+
+    const handleChangeGroup = (taskId, newGroupId) => runMutation(async () => {
+        if (newGroupId === 'ungrouped') {
+            await apiFetch(`/api/tasks/${taskId}/ungroup`, {method: 'POST'});
+        } else {
+            await apiFetch(`/api/tasks/${taskId}/group/${newGroupId}`, {method: 'POST'});
+        }
+    });
 
     function startEdit(task) {
         setMutationError(null);
@@ -160,7 +177,16 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
         e.preventDefault();
         setMutationError(null);
         const url = isAdmin ? `/api/admin/users/${userId}/tasks` : '/api/tasks';
-        apiFetch(url, {method: 'POST', body: JSON.stringify({title, priority})})
+        const payload = {title, priority};
+
+        if (groupId != null && groupId !== 'all' && groupId !== 'ungrouped') {
+            const parsed = Number(groupId);
+            if (Number.isInteger(parsed) && parsed > 0) {
+                payload.groupId = parsed;
+            }
+        }
+
+        apiFetch(url, {method: 'POST', body: JSON.stringify(payload)})
             .then(() => {
                 setTitle('');
                 setPriority('MEDIUM');
@@ -215,7 +241,11 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
                             className="create-task"
                             type="text"
                             value={title}
-                            placeholder="Task title..."
+                            placeholder={
+                                groupId != null && groupId !== 'all' && groupId !== 'ungrouped'
+                                    ? `New task in "${groups?.find(g => String(g.id) === groupId)?.title ?? '…'}"…`
+                                    : 'Task title…'
+                            }
                             required
                             maxLength={255}
                             autoComplete="off"
@@ -242,7 +272,7 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
                     <form onSubmit={handleSearchSubmit} className="search-form">
                         <input
                             type="text"
-                            placeholder="Search by title..."
+                            placeholder="Search by title…"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
@@ -361,6 +391,24 @@ export default function TaskList({userId, isAdmin = false, urlKey = null}) {
                                         <span>{formatDate(task.startDate)}</span>
                                         <span>—</span>
                                         <span>{task.state}</span>
+                                        {groups && (
+                                            <>
+                                                <span>·</span>
+                                                <select
+                                                    className="group-picker"
+                                                    value={task.groupId != null ? String(task.groupId) : 'ungrouped'}
+                                                    onChange={e => handleChangeGroup(task.id, e.target.value)}
+                                                    aria-label="Group"
+                                                >
+                                                    <option value="ungrouped">No group</option>
+                                                    {groups.map(g => (
+                                                        <option key={g.id} value={String(g.id)}>
+                                                            {g.title}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="list-item-actions">

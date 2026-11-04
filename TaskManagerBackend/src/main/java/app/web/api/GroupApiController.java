@@ -22,7 +22,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "Groups")
+@Tag(name = "Groups", description = "Endpoints for managing groups")
 @RequestMapping(value = "/api/groups", produces = MediaType.APPLICATION_JSON_VALUE)
 public class GroupApiController {
     private final GroupService groupService;

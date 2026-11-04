@@ -10,6 +10,7 @@ import app.web.dto.request.group.CreateGroupRequest;
 import app.web.dto.request.group.GroupQueryRequest;
 import app.web.dto.request.task.CreateTaskRequest;
 import app.web.dto.request.task.TaskQueryRequest;
+import app.web.dto.request.user.ChangePasswordRequest;
 import app.web.dto.request.user.CreateUserRequest;
 import app.web.dto.request.user.UpdateUserRequest;
 import app.web.dto.request.user.UserQueryRequest;
@@ -151,7 +152,7 @@ public class AdminApiController {
         userService.update(admin, userId, body.username(), body.status());
 
         if (body.password() != null && !body.password().isBlank()) {
-            userService.changePassword(admin, userId, null, body.password());
+            userService.changePassword(admin, userId, new ChangePasswordRequest(admin.getPassword(), body.password()));
         }
 
         return new MessageResponse("Updated user with id: " + userId);

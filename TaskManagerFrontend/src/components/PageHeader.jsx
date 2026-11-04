@@ -1,4 +1,4 @@
-import {useNavigate} from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import {apiFetch} from '../api/client.js';
 import {useAuth} from '../auth/AuthContext.jsx';
 
@@ -19,9 +19,9 @@ export default function PageHeader() {
         <header className="page-header">
             <div className="page-header-title">Task Manager</div>
             <div className="page-header-account">
-                <p className="account-name">
+                <Link to="/profile" className="account-link">
                     Signed in as <b>{user?.username}</b>
-                </p>
+                </Link>
                 <button type="button" onClick={handleLogout} className="button-logout">
                     Log out
                 </button>

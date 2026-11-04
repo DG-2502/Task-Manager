@@ -5,6 +5,8 @@ import app.exception.AccessDeniedException;
 import app.exception.AuthenticationException;
 import app.exception.ValidationException;
 import app.repo.UserRepository;
+import app.web.dto.request.user.ChangePasswordRequest;
+import app.web.dto.request.user.LoginRequest;
 import app.web.dto.request.user.UserQueryRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,7 +58,7 @@ public class UserServiceTest {
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.empty());
 
         AuthenticationException exception = assertThrows(AuthenticationException.class, () ->
-                userService.login(normalUser.getUsername(), "password"));
+                userService.login(new LoginRequest(normalUser.getUsername(), "password")));
 
         assertEquals("The username or password is incorrect", exception.getMessage());
     }
@@ -67,7 +69,7 @@ public class UserServiceTest {
         when(passwordEncoder.matches("fakePassword", normalUser.getPasswordHash())).thenReturn(false);
 
         AuthenticationException exception = assertThrows(AuthenticationException.class, () ->
-                userService.login(normalUser.getUsername(), "fakePassword"));
+                userService.login(new LoginRequest(normalUser.getUsername(), "fakePassword")));
 
         assertEquals("The username or password is incorrect", exception.getMessage());
     }
@@ -77,7 +79,7 @@ public class UserServiceTest {
         when(userRepo.getByUsername(normalUser.getUsername())).thenReturn(Optional.of(normalUser));
         when(passwordEncoder.matches("truePassword", normalUser.getPasswordHash())).thenReturn(true);
 
-        User returnedUser = userService.login(normalUser.getUsername(), "truePassword");
+        User returnedUser = userService.login(new LoginRequest(normalUser.getUsername(), "truePassword"));
 
         assertNotNull(returnedUser);
         assertEquals(normalUser.getId(), returnedUser.getId());
@@ -210,7 +212,7 @@ public class UserServiceTest {
     @Test
     void changePassword_ShouldThrow_WhenNonAdminChangesOthersPassword() {
         assertThrows(AccessDeniedException.class, () ->
-                userService.changePassword(normalUser, otherUser.getId(), "current", "newPassword"));
+                userService.changePassword(normalUser, otherUser.getId(), new ChangePasswordRequest("current", "newPassword")));
 
         verify(userRepo, never()).save(any(User.class));
     }
@@ -220,8 +222,24 @@ public class UserServiceTest {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
         when(passwordEncoder.matches("wrongPassword", normalUser.getPasswordHash())).thenReturn(false);
 
-        assertThrows(AuthenticationException.class, () ->
-                userService.changePassword(normalUser, normalUser.getId(), "wrongPassword", "newPassword"));
+        ValidationException exception = assertThrows(ValidationException.class, () ->
+                userService.changePassword(normalUser, normalUser.getId(), new ChangePasswordRequest("wrongPassword", "newPassword")));
+
+        assertEquals("Current password is incorrect", exception.getMessage());
+
+        verify(userRepo, never()).save(any(User.class));
+    }
+
+    @Test
+    void changePassword_ShouldThrow_WhenNewPasswordIsCurrentPassword() {
+        when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
+        when(passwordEncoder.matches("realPassword", normalUser.getPasswordHash())).thenReturn(true);
+
+        ValidationException exception = assertThrows(ValidationException.class, () ->
+                userService.changePassword(normalUser, normalUser.getId(), new ChangePasswordRequest("realPassword", "realPassword")));
+
+        assertEquals("New password must differ from current", exception.getMessage());
+
 
         verify(userRepo, never()).save(any(User.class));
     }
@@ -232,7 +250,7 @@ public class UserServiceTest {
         when(passwordEncoder.matches("correctPassword", normalUser.getPasswordHash())).thenReturn(true);
         when(passwordEncoder.encode("newValidPassword")).thenReturn("newHashedPassword");
 
-        userService.changePassword(normalUser, normalUser.getId(), "correctPassword", "newValidPassword");
+        userService.changePassword(normalUser, normalUser.getId(), new ChangePasswordRequest("correctPassword", "newValidPassword"));
 
         assertEquals("newHashedPassword", normalUser.getPasswordHash());
         verify(userRepo, times(1)).save(normalUser);
@@ -243,7 +261,7 @@ public class UserServiceTest {
         when(userRepo.findById(normalUser.getId())).thenReturn(Optional.of(normalUser));
         when(passwordEncoder.encode("newValidPassword")).thenReturn("newHashedPassword");
 
-        userService.changePassword(adminUser, normalUser.getId(), null, "newValidPassword");
+        userService.changePassword(adminUser, normalUser.getId(), new ChangePasswordRequest("null", "newValidPassword"));
 
         assertEquals("newHashedPassword", normalUser.getPasswordHash());
         verify(userRepo, times(1)).save(normalUser);
@@ -256,7 +274,7 @@ public class UserServiceTest {
         when(userRepo.findById(otherAdmin.getId())).thenReturn(Optional.of(otherAdmin));
         when(passwordEncoder.encode("newValidPassword")).thenReturn("newHashedPassword");
 
-        userService.changePassword(adminUser, otherAdmin.getId(), null, "newValidPassword");
+        userService.changePassword(adminUser, otherAdmin.getId(), new ChangePasswordRequest("null", "newValidPassword"));
 
         assertEquals("newHashedPassword", otherAdmin.getPasswordHash());
         verify(userRepo).save(otherAdmin);

@@ -101,6 +101,13 @@ public class TaskService {
         if (query.priority() != null) {
             spec = spec.and(TaskSpecifications.byPriority(query.priority()));
         }
+        if (query.groupId() != null) {
+            spec = spec.and(TaskSpecifications.byGroupId(query.groupId()));
+        } else if (Boolean.TRUE.equals(query.ungrouped())) {
+            spec = spec.and(TaskSpecifications.byUngrouped());
+        } else if (Boolean.FALSE.equals(query.ungrouped())) {
+            spec = spec.and(TaskSpecifications.byGrouped());
+        }
 
         switch (query.sortBy()) {
             case PRIORITY -> spec = spec.and(TaskSpecifications.sortByPriority(direction.isAscending()));

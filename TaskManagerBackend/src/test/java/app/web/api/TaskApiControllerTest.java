@@ -229,7 +229,11 @@ class TaskApiControllerTest {
         verify(taskService).getTasks(eq(testUser), eq(1), argThat(query ->
                 query.page() == 0 && query.size() == 10 &&
                         query.sortBy() == TaskQueryRequest.SortField.ID &&
-                        query.direction() == Sort.Direction.ASC
+                        query.direction() == Sort.Direction.ASC &&
+                        query.state() == null &&
+                        query.priority() == null &&
+                        query.groupId() == null &&
+                        query.search() == null
         ));
     }
 
@@ -249,6 +253,60 @@ class TaskApiControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.field").value("state"))
                 .andExpect(jsonPath("$.message").value("Invalid value: INVALID_STATE for parameter: state"));
+    }
+
+    @Test
+    void getTasks_ShouldReturn200_AndPassGroupIdFilter_WhenGroupIdProvided() throws Exception {
+        when(taskService.getTasks(any(), anyInt(), any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/tasks?groupId=10")
+                        .with(authenticatedUser(testUser)))
+                .andExpect(status().isOk());
+
+        verify(taskService).getTasks(eq(testUser), eq(1), argThat(query ->
+                Integer.valueOf(10).equals(query.groupId())
+        ));
+    }
+
+    @Test
+    void getTasks_ShouldReturn400_WhenGroupIdIsZero() throws Exception {
+        mockMvc.perform(get("/api/tasks?groupId=0")
+                        .with(authenticatedUser(testUser)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("groupId"))
+                .andExpect(jsonPath("$.message").value("Group ID must be a positive number"));
+    }
+
+    @Test
+    void getTasks_ShouldReturn400_WhenGroupIdIsNegative() throws Exception {
+        mockMvc.perform(get("/api/tasks?groupId=-1")
+                        .with(authenticatedUser(testUser)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("groupId"))
+                .andExpect(jsonPath("$.message").value("Group ID must be a positive number"));
+    }
+
+    @Test
+    void getTasks_ShouldReturn200_WhenUngroupedIsTrue() throws Exception {
+        when(taskService.getTasks(any(), anyInt(), any())).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/tasks?ungrouped=true").with(authenticatedUser(testUser)))
+                .andExpect(status().isOk());
+        verify(taskService).getTasks(eq(testUser), eq(1), argThat(q -> Boolean.TRUE.equals(q.ungrouped())));
+    }
+
+    @Test
+    void getTasks_ShouldReturn200_WhenUngroupedIsFalse() throws Exception {
+        when(taskService.getTasks(any(), anyInt(), any())).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/tasks?ungrouped=false").with(authenticatedUser(testUser)))
+                .andExpect(status().isOk());
+        verify(taskService).getTasks(eq(testUser), eq(1), argThat(q -> Boolean.FALSE.equals(q.ungrouped())));
+    }
+
+    @Test
+    void getTasks_ShouldReturn400_WhenGroupIdAndUngroupedAreCombined() throws Exception {
+        mockMvc.perform(get("/api/tasks?groupId=10&ungrouped=true").with(authenticatedUser(testUser)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Cannot combine 'groupId' with 'ungrouped=true'"));
     }
 
     @Test

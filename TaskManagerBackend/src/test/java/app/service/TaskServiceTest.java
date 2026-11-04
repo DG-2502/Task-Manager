@@ -467,7 +467,8 @@ public class TaskServiceTest {
 
     @Test
     void getTasks_ShouldThrowAccessDenied_WhenUserRequestsOthersTasks() {
-        TaskQueryRequest query = new TaskQueryRequest(0, 10, null, null, null, null, null);
+        TaskQueryRequest query = new TaskQueryRequest(
+                0, 10, null, null, null, null, null, null, null);
 
         assertThrows(AccessDeniedException.class, () ->
                 taskService.getTasks(normalUser, 999, query));
@@ -477,7 +478,8 @@ public class TaskServiceTest {
 
     @Test
     void getTasks_ShouldReturnPage_WhenUserRequestsOwnTasks() {
-        TaskQueryRequest query = new TaskQueryRequest(0, 10, null, null, null, null, null);
+        TaskQueryRequest query = new TaskQueryRequest(
+                0, 10, null, null, null, null, null, null, null);
         when(taskRepo.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
 
         Page<Task> result = taskService.getTasks(normalUser, normalUser.getId(), query);
@@ -492,6 +494,8 @@ public class TaskServiceTest {
                 0, 10,
                 Task.State.ACTIVE,
                 Task.Priority.HIGH,
+                testGroup.getId(),
+                null,
                 TaskQueryRequest.SortField.PRIORITY,
                 Sort.Direction.ASC,
                 "search");
@@ -503,7 +507,27 @@ public class TaskServiceTest {
 
     @Test
     void getTasks_ShouldNotThrow_WhenSearchIsBlank() {
-        TaskQueryRequest query = new TaskQueryRequest(0, 10, null, null, null, null, "   ");
+        TaskQueryRequest query = new TaskQueryRequest(
+                0, 10, null, null, null, null, null, null, "   ");
+        when(taskRepo.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        assertDoesNotThrow(() -> taskService.getTasks(normalUser, normalUser.getId(), query));
+    }
+
+    @Test
+    void getTasks_ShouldNotThrow_WhenOnlyGroupIdFilterProvided() {
+        TaskQueryRequest query = new TaskQueryRequest(
+                0, 10, null, null, testGroup.getId(), null, null, null, null);
+        when(taskRepo.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        assertDoesNotThrow(() -> taskService.getTasks(normalUser, normalUser.getId(), query));
+        verify(taskRepo).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void getTasks_ShouldNotThrow_WhenGroupIdIsNull() {
+        TaskQueryRequest query = new TaskQueryRequest(
+                0, 10, null, null, null, null, null, null, null);
         when(taskRepo.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
 
         assertDoesNotThrow(() -> taskService.getTasks(normalUser, normalUser.getId(), query));

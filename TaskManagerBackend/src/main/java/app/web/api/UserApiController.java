@@ -42,7 +42,7 @@ public class UserApiController {
     })
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest body) {
-        User user = userService.login(body.username(), body.password());
+        User user = userService.login(body);
         String token = jwtService.generateToken(user);
 
         return new LoginResponse(token, UserResponse.from(user));
@@ -108,7 +108,7 @@ public class UserApiController {
     })
     @PatchMapping("/password")
     public MessageResponse changePassword(@AuthenticationPrincipal User me, @Valid @RequestBody ChangePasswordRequest body) {
-        userService.changePassword(me, me.getId(), body.currentPassword(), body.newPassword());
+        userService.changePassword(me, me.getId(), body);
 
         return new MessageResponse("Password changed successfully");
     }

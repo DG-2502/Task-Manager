@@ -6,8 +6,11 @@ import app.repo.UserRepository;
 import app.service.JwtService;
 import app.service.UserService;
 import app.web.config.SecurityConfig;
+import app.web.dto.request.user.ChangePasswordRequest;
+import app.web.dto.request.user.LoginRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -19,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -67,7 +71,7 @@ class UserApiControllerTest {
                 }
                 """;
 
-        when(userService.login("testUser", "password123")).thenReturn(testUser);
+        when(userService.login(new LoginRequest("testUser", "password123"))).thenReturn(testUser);
         when(jwtService.generateToken(testUser)).thenReturn("mocked-jwt-token");
 
         mockMvc.perform(post("/api/users/login")
@@ -88,7 +92,7 @@ class UserApiControllerTest {
                 }
                 """;
 
-        when(userService.login(anyString(), anyString()))
+        when(userService.login(any()))
                 .thenThrow(new AuthenticationException("The username or password is incorrect"));
 
         mockMvc.perform(post("/api/users/login")
@@ -297,7 +301,11 @@ class UserApiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Password changed successfully"));
 
-        verify(userService).changePassword(eq(testUser), eq(1), eq("oldPassword"), eq("newValidPassword"));
+        ArgumentCaptor<ChangePasswordRequest> captor = ArgumentCaptor.forClass(ChangePasswordRequest.class);
+        verify(userService).changePassword(eq(testUser), eq(1), captor.capture());
+        ChangePasswordRequest body = captor.getValue();
+        assertEquals("oldPassword", body.currentPassword());
+        assertEquals("newValidPassword", body.newPassword());
     }
 
     @Test
@@ -310,7 +318,7 @@ class UserApiControllerTest {
                 """;
 
         doThrow(new AuthenticationException("Current password is incorrect"))
-                .when(userService).changePassword(any(), anyInt(), anyString(), anyString());
+                .when(userService).changePassword(any(), anyInt(), any());
 
         mockMvc.perform(patch("/api/users/password")
                         .with(authenticatedUser(testUser))

@@ -4,6 +4,12 @@ import {useAuth} from '../auth/AuthContext';
 import usePagedResource from '../hooks/usePagedResource';
 import ExpandableTitle from './ExpandableTitle';
 
+const STATUS_FILTERS = [
+    {value: 'ALL', label: 'All'},
+    {value: 'USER', label: 'Users'},
+    {value: 'ADMIN', label: 'Admins'},
+];
+
 export default function UserList({onSelect, selectedId, urlKey = null}) {
     const {user: currentUser, setUser} = useAuth();
 
@@ -160,14 +166,14 @@ export default function UserList({onSelect, selectedId, urlKey = null}) {
             <div className="toolbar">
                 <div className="toolbar-row">
                     <div className="filter-group">
-                        {['ALL', 'USERS', 'ADMINS'].map(f => (
+                        {STATUS_FILTERS.map(({value, label}) => (
                             <button
-                                key={f}
+                                key={value}
                                 type="button"
-                                className={`filter-button ${filter === f ? 'active' : ''}`}
-                                onClick={() => setFilter(f)}
+                                className={`filter-button ${filter === value ? 'active' : ''}`}
+                                onClick={() => setFilter(value)}
                             >
-                                {f.charAt(0) + f.slice(1).toLowerCase()}
+                                {label}
                             </button>
                         ))}
                     </div>

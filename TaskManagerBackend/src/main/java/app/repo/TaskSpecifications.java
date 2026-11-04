@@ -32,6 +32,19 @@ public final class TaskSpecifications {
                 criteriaBuilder.equal(root.get("priority"), priority));
     }
 
+    public static Specification<Task> byGroupId(int groupId) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("groupId"), groupId);
+    }
+
+    public static Specification<Task> byUngrouped() {
+        return (root, query, cb) -> cb.isNull(root.get("groupId"));
+    }
+
+    public static Specification<Task> byGrouped() {
+        return (root, query, cb) -> cb.isNotNull(root.get("groupId"));
+    }
+
     public static Specification<Task> sortByPriority(boolean isAscending) {
         return ((root, query, criteriaBuilder) -> {
             Expression<?> priorityOrder = criteriaBuilder.selectCase()

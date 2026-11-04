@@ -1,12 +1,11 @@
 package app.service;
 
 import app.domain.User;
-import app.exception.AccessDeniedException;
-import app.exception.AuthenticationException;
-import app.exception.UserNotFoundException;
-import app.exception.ValidationException;
+import app.exception.*;
 import app.repo.UserRepository;
 import app.repo.UserSpecifications;
+import app.web.dto.request.user.ChangePasswordRequest;
+import app.web.dto.request.user.LoginRequest;
 import app.web.dto.request.user.UserQueryRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,14 +27,14 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User login(String username, String password) throws AuthenticationException {
-        Optional<User> optionalUser = userRepo.getByUsername(username);
+    public User login(LoginRequest body) throws AuthenticationException {
+        Optional<User> optionalUser = userRepo.getByUsername(body.username());
         if (optionalUser.isEmpty()) {
             throw new AuthenticationException("The username or password is incorrect");
         }
 
         User user = optionalUser.get();
-        if (passwordEncoder.matches(password, user.getPasswordHash())) {
+        if (passwordEncoder.matches(body.password(), user.getPasswordHash())) {
             return user;
         }
 
@@ -94,18 +93,22 @@ public class UserService {
         userRepo.save(user);
     }
 
-    public void changePassword(User requester, int userId, String password, String newPassword) throws AccessDeniedException, AuthenticationException, ValidationException, UserNotFoundException {
+    public void changePassword(User requester, int userId, ChangePasswordRequest body) throws AccessDeniedException, AuthenticationException, ValidationException, UserNotFoundException {
         verifyAdminAccess(requester, userId, "Only admins can change others' password");
 
         User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
         if (requester.getId() == userId) {
-            if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-                throw new AuthenticationException("Current password is incorrect");
+            if (!passwordEncoder.matches(body.currentPassword(), user.getPasswordHash())) {
+                throw new ValidationException("currentPassword", "Current password is incorrect");
+            }
+
+            if (passwordEncoder.matches(body.newPassword(), user.getPassword())) {
+                throw new ValidationException("newPassword", "New password must differ from current");
             }
         }
 
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setPasswordHash(passwordEncoder.encode(body.newPassword()));
         userRepo.save(user);
     }
 

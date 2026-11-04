@@ -6,6 +6,7 @@ import TasksPage from './pages/TasksPage';
 import RegisterPage from './pages/RegisterPage.jsx';
 import AdminRoute from "./auth/AdminRoute.jsx";
 import AdminPage from './pages/AdminPage.jsx'
+import ProfilePage from "./components/ProfilePage.jsx";
 
 export default function App() {
     return (
@@ -29,6 +30,14 @@ export default function App() {
                             <AdminRoute>
                                 <AdminPage/>
                             </AdminRoute>
+                        }
+                    />
+                    <Route
+                        path="/profile"
+                        element={
+                            <ProtectedRoute>
+                                <ProfilePage/>
+                            </ProtectedRoute>
                         }
                     />
                     <Route path="*" element={<Navigate to="/tasks"/>}/>

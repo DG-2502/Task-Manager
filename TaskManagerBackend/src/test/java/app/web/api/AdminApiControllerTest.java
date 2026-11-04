@@ -15,6 +15,7 @@ import app.web.config.SecurityConfig;
 import app.web.dto.request.group.CreateGroupRequest;
 import app.web.dto.request.group.GroupQueryRequest;
 import app.web.dto.request.task.CreateTaskRequest;
+import app.web.dto.request.user.ChangePasswordRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -363,7 +364,7 @@ class AdminApiControllerTest {
                 .andExpect(status().isOk());
 
         verify(userService).update(eq(testAdmin), eq(5), eq("newUsername"), eq(User.Status.ADMIN));
-        verify(userService, never()).changePassword(any(), anyInt(), any(), any());
+        verify(userService, never()).changePassword(any(), anyInt(), any());
     }
 
     @Test
@@ -382,7 +383,9 @@ class AdminApiControllerTest {
                 .andExpect(status().isOk());
 
         verify(userService).update(eq(testAdmin), eq(5), eq("newUsername"), isNull());
-        verify(userService).changePassword(eq(testAdmin), eq(5), isNull(), eq("newAdminPassword"));
+        ArgumentCaptor<ChangePasswordRequest> captor = ArgumentCaptor.forClass(ChangePasswordRequest.class);
+        verify(userService).changePassword(eq(testAdmin), eq(5), captor.capture());
+        assertEquals("newAdminPassword", captor.getValue().newPassword());
     }
 
     @Test
@@ -400,7 +403,7 @@ class AdminApiControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.field").value("password"));
 
-        verify(userService, never()).changePassword(any(), anyInt(), any(), any());
+        verify(userService, never()).changePassword(any(), anyInt(), any());
     }
 
     @Test
@@ -440,7 +443,7 @@ class AdminApiControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("Admins cannot change themselves to users"));
 
-        verify(userService, never()).changePassword(any(), anyInt(), any(), any());
+        verify(userService, never()).changePassword(any(), anyInt(), any());
     }
 
     @Test

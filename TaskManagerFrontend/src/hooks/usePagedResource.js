@@ -10,7 +10,7 @@ const DEFAULTS = {
     q: '',
 };
 
-export default function usePagedResource(buildUrl, {urlKey = null} = {}) {
+export default function usePagedResource(buildUrl, {urlKey = null, externalRefreshKey = 0} = {}) {
     const [searchParams, setSearchParams] = useSearchParams();
     const prefix = urlKey ? `${urlKey}.` : '';
 
@@ -97,7 +97,7 @@ export default function usePagedResource(buildUrl, {urlKey = null} = {}) {
             })
             .catch(err => setFetchError(err.message))
             .finally(() => setLoading(false));
-    }, [page, size, filter, appliedSearch, reloadKey, buildUrl]);
+    }, [page, size, filter, appliedSearch, reloadKey, externalRefreshKey, buildUrl]);
 
     return {
         content, loading, fetchError,
